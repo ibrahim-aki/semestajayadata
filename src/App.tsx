@@ -141,8 +141,8 @@ export const App = () => {
             {!isFirebaseConfigured && (
                  <div style={{padding: '12px', backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text-body)', textAlign: 'center', borderBottom: '1px solid var(--warning-border)', fontWeight: 500}}>
                      <strong>Peringatan:</strong> Aplikasi berjalan dalam mode offline. Untuk mengaktifkan sinkronisasi data online, mohon&nbsp;
-                     <a href="#" onClick={(e) => { e.preventDefault(); alert('Untuk mengaktifkan penyimpanan online, ikuti instruksi yang ada di dalam file src/firebaseConfig.ts pada kode proyek Anda.'); }} style={{color: 'var(--warning-text-header)', textDecoration: 'underline'}}>
-                         konfigurasi Firebase
+                     <a href="#" onClick={(e) => { e.preventDefault(); alert('Untuk mengaktifkan penyimpanan online, Anda harus mengatur Environment Variables (VITE_FIREBASE_API_KEY, dll) di dasbor Vercel Anda, lalu lakukan Redeploy.'); }} style={{color: 'var(--warning-text-header)', textDecoration: 'underline'}}>
+                         konfigurasi Environment Variables
                      </a>.
                  </div>
             )}
