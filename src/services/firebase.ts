@@ -1,40 +1,29 @@
-import { initializeApp, FirebaseApp } from "firebase/app";
-import {
-    getFirestore,
-    collection,
-    onSnapshot,
-    doc,
-    setDoc,
-    deleteDoc,
-    query,
-    orderBy,
-    where,
-    writeBatch,
-    getDocs,
-    Firestore,
-    Unsubscribe,
-    Query
-} from "firebase/firestore";
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/firestore';
 import { firebaseConfig } from "../firebaseConfig";
 import { Store, OpnameSession } from '../types/data';
 
-let app: FirebaseApp;
-let db: Firestore | null = null;
+let app: firebase.app.App;
+let db: firebase.firestore.Firestore | null = null;
 
 // Periksa apakah nilai konfigurasi adalah placeholder
-const isConfigValid = firebaseConfig.apiKey !== "GANTI_DENGAN_API_KEY_ANDA" && firebaseConfig.projectId !== "GANTI_DENGAN_PROJECT_ID_ANDA";
+const isConfigValid = firebaseConfig.apiKey && firebaseConfig.apiKey !== "GANTI_DENGAN_API_KEY_ANDA";
 
 if (isConfigValid) {
     try {
-        app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
+        if (!firebase.apps.length) {
+            app = firebase.initializeApp(firebaseConfig);
+        } else {
+            app = firebase.app();
+        }
+        db = firebase.firestore();
         console.log("Firebase berhasil dikonfigurasi dan terhubung.");
     } catch (error) {
         console.error("Gagal menginisialisasi Firebase, periksa konfigurasi Anda:", error);
         db = null;
     }
 } else {
-    console.warn("Konfigurasi Firebase belum diatur. Silakan edit src/firebaseConfig.ts. Aplikasi akan berjalan dalam mode offline.");
+    console.warn("Konfigurasi Firebase belum diatur. Silakan atur Environment Variables di Vercel. Aplikasi akan berjalan dalam mode offline.");
 }
 
 export const isFirebaseConfigured = isConfigValid && db !== null;
@@ -43,10 +32,10 @@ const STORES_COLLECTION = 'stores';
 const HISTORY_COLLECTION = 'opnameHistory';
 
 // Fungsi untuk mendapatkan data toko secara real-time
-export const onStoresSnapshot = (callback: (stores: Store[]) => void): Unsubscribe => {
+export const onStoresSnapshot = (callback: (stores: Store[]) => void): (() => void) => {
     if (!db) return () => {};
-    const q: Query = query(collection(db, STORES_COLLECTION), orderBy("name"));
-    return onSnapshot(q, (snapshot) => {
+    const q: firebase.firestore.Query = db.collection(STORES_COLLECTION).orderBy("name");
+    return q.onSnapshot((snapshot) => {
         const stores = snapshot.docs.map(doc => doc.data() as Store);
         callback(stores);
     }, (error) => {
@@ -55,10 +44,10 @@ export const onStoresSnapshot = (callback: (stores: Store[]) => void): Unsubscri
 };
 
 // Fungsi untuk mendapatkan riwayat opname secara real-time
-export const onHistorySnapshot = (callback: (history: OpnameSession[]) => void): Unsubscribe => {
+export const onHistorySnapshot = (callback: (history: OpnameSession[]) => void): (() => void) => {
     if (!db) return () => {};
-    const q: Query = query(collection(db, HISTORY_COLLECTION), orderBy("date", "desc"));
-    return onSnapshot(q, (snapshot) => {
+    const q: firebase.firestore.Query = db.collection(HISTORY_COLLECTION).orderBy("date", "desc");
+    return q.onSnapshot((snapshot) => {
         const history = snapshot.docs.map(doc => doc.data() as OpnameSession);
         callback(history);
     }, (error) => {
@@ -69,25 +58,25 @@ export const onHistorySnapshot = (callback: (history: OpnameSession[]) => void):
 // Fungsi untuk memperbarui seluruh dokumen toko
 export const updateStore = async (store: Store): Promise<void> => {
     if (!db) return;
-    await setDoc(doc(db, STORES_COLLECTION, store.id), store);
+    await db.collection(STORES_COLLECTION).doc(store.id).set(store);
 };
 
 // Fungsi untuk menambah toko baru
 export const addStore = async (store: Store): Promise<void> => {
     if (!db) return;
-    await setDoc(doc(db, STORES_COLLECTION, store.id), store);
+    await db.collection(STORES_COLLECTION).doc(store.id).set(store);
 };
 
 // Fungsi untuk menghapus toko dan semua riwayat opname terkait
 export const deleteStore = async (storeId: string): Promise<void> => {
     if (!db) return;
-    const batch = writeBatch(db);
+    const batch = db.batch();
 
-    const storeDocRef = doc(db, STORES_COLLECTION, storeId);
+    const storeDocRef = db.collection(STORES_COLLECTION).doc(storeId);
     batch.delete(storeDocRef);
 
-    const historyQuery = query(collection(db, HISTORY_COLLECTION), where("storeId", "==", storeId));
-    const historySnapshot = await getDocs(historyQuery);
+    const historyQuery = db.collection(HISTORY_COLLECTION).where("storeId", "==", storeId);
+    const historySnapshot = await historyQuery.get();
     historySnapshot.forEach(doc => {
         batch.delete(doc.ref);
     });
@@ -98,22 +87,23 @@ export const deleteStore = async (storeId: string): Promise<void> => {
 // Fungsi untuk menambah sesi opname baru
 export const addOpnameSession = async (session: OpnameSession): Promise<void> => {
     if (!db) return;
-    await setDoc(doc(db, HISTORY_COLLECTION, session.id), session);
+    await db.collection(HISTORY_COLLECTION).doc(session.id).set(session);
     // Juga perbarui data di dalam dokumen toko terkait (inventory dan aset)
-    const storeDocRef = doc(db, STORES_COLLECTION, session.storeId);
+    const storeDocRef = db.collection(STORES_COLLECTION).doc(session.storeId);
     const newInventory = session.items.map(item => ({
       itemId: item.itemId,
       recordedStock: item.physicalCount,
     }));
     
     // Asumsi kita perlu mengambil data aset saat ini untuk diperbarui
-    const storeSnapshot = await getDocs(query(collection(db, STORES_COLLECTION), where("id", "==", session.storeId)));
+    const storeQuery = db.collection(STORES_COLLECTION).where("id", "==", session.storeId);
+    const storeSnapshot = await storeQuery.get();
     if (!storeSnapshot.empty) {
         const storeData = storeSnapshot.docs[0].data() as Store;
         const updatedAssets = storeData.assets.map(asset => {
             const change = session.assetChanges.find(c => c.assetId === asset.id);
             return change ? { ...asset, condition: change.newCondition } : asset;
         });
-        await setDoc(storeDocRef, { inventory: newInventory, assets: updatedAssets }, { merge: true });
+        await storeDocRef.set({ inventory: newInventory, assets: updatedAssets }, { merge: true });
     }
 };

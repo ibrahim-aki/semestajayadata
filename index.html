@@ -20,6 +20,8 @@
     "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^4.6.0",
     "firebase/app": "https://esm.sh/firebase@10.12.2/app",
     "firebase/firestore": "https://esm.sh/firebase@10.12.2/firestore",
+    "firebase/compat/app": "https://esm.sh/firebase@10.12.2/compat/app",
+    "firebase/compat/firestore": "https://esm.sh/firebase@10.12.2/compat/firestore",
     "firebase/": "https://esm.sh/firebase@^12.0.0/"
   }
 }
@@ -28,7 +30,8 @@
 </head>
 <body>
     <div id="root"></div>
-    <!-- The main entry point is now index.tsx -->
-    <script type="module" src="/index.tsx"></script>
+    <!-- The main entry point is now src/main.tsx -->
+    <script type="module" src="/src/main.tsx"></script>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>
