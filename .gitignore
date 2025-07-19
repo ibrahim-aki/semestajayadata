@@ -84,4 +84,3 @@ dist-ssr
 # == BARIS PALING PENTING UNTUK KEAMANAN ADA DI BAWAH INI ==
 # ===============================================================
 # Mencegah file konfigurasi Firebase yang sensitif terunggah ke GitHub
-src/firebaseConfig.ts
