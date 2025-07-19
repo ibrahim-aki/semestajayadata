@@ -6,8 +6,7 @@ import { Store, OpnameSession } from '../types/data';
 let db: firebase.firestore.Firestore | null = null;
 
 // Periksa apakah nilai konfigurasi adalah placeholder atau tidak diisi
-// Menggunakan `!!` untuk memastikan isConfigValid adalah boolean, memperbaiki error TS2322.
-const isConfigValid = !!(firebaseConfig.apiKey && firebaseConfig.projectId);
+const isConfigValid = !!(firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.projectId !== 'nama-proyek-anda');
 
 if (isConfigValid) {
     try {
@@ -17,7 +16,8 @@ if (isConfigValid) {
         db = firebase.firestore();
         console.log("Firebase berhasil dikonfigurasi dan terhubung.");
     } catch (error) {
-        console.error("Gagal menginisialisasi Firebase, periksa konfigurasi Anda:", error);
+        console.error("Gagal menginisialisasi Firebase. Periksa Environment Variables di Vercel dan redeploy.", error);
+        alert(`Koneksi ke database gagal. Pastikan Environment Variables di Vercel sudah benar dan Anda telah melakukan 'Redeploy'.\n\nError: ${(error as Error).message}`);
         db = null;
     }
 } else {
@@ -38,6 +38,7 @@ export const onStoresSnapshot = (callback: (stores: Store[]) => void): (() => vo
         callback(stores);
     }, (error) => {
         console.error("Gagal mendapatkan data toko: ", error);
+        alert(`Gagal mengambil data dari database. Error: ${error.message}`);
     });
 };
 
@@ -85,23 +86,35 @@ export const deleteStore = async (storeId: string): Promise<void> => {
 // Fungsi untuk menambah sesi opname baru
 export const addOpnameSession = async (session: OpnameSession): Promise<void> => {
     if (!db) return;
-    await db.collection(HISTORY_COLLECTION).doc(session.id).set(session);
-    // Juga perbarui data di dalam dokumen toko terkait (inventory dan aset)
-    const storeDocRef = db.collection(STORES_COLLECTION).doc(session.storeId);
-    const newInventory = session.items.map(item => ({
-      itemId: item.itemId,
-      recordedStock: item.physicalCount,
-    }));
     
-    // Asumsi kita perlu mengambil data aset saat ini untuk diperbarui
-    const storeQuery = db.collection(STORES_COLLECTION).where("id", "==", session.storeId);
-    const storeSnapshot = await storeQuery.get();
-    if (!storeSnapshot.empty) {
-        const storeData = storeSnapshot.docs[0].data() as Store;
-        const updatedAssets = storeData.assets.map(asset => {
-            const change = session.assetChanges.find(c => c.assetId === asset.id);
-            return change ? { ...asset, condition: change.newCondition } : asset;
-        });
-        await storeDocRef.set({ inventory: newInventory, assets: updatedAssets }, { merge: true });
+    // Simpan sesi opname
+    await db.collection(HISTORY_COLLECTION).doc(session.id).set(session);
+
+    // Ambil data toko saat ini untuk pembaruan yang aman
+    const storeDocRef = db.collection(STORES_COLLECTION).doc(session.storeId);
+    const storeDoc = await storeDocRef.get();
+    if (!storeDoc.exists) {
+        console.error("Store not found for opname update.");
+        return;
     }
+
+    const currentStoreData = storeDoc.data() as Store;
+
+    // Perbarui inventaris berdasarkan opname
+    const newInventory = currentStoreData.inventory.map(inv => {
+        const opnameItem = session.items.find(i => i.itemId === inv.itemId);
+        return opnameItem ? { ...inv, recordedStock: opnameItem.physicalCount } : inv;
+    });
+
+    // Perbarui kondisi aset berdasarkan opname
+    const updatedAssets = currentStoreData.assets.map(asset => {
+        const change = session.assetChanges.find(c => c.assetId === asset.id);
+        return change ? { ...asset, condition: change.newCondition } : asset;
+    });
+
+    // Lakukan pembaruan pada dokumen toko
+    await storeDocRef.update({
+        inventory: newInventory,
+        assets: updatedAssets
+    });
 };
