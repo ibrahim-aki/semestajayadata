@@ -3,18 +3,16 @@ import 'firebase/compat/firestore';
 import { firebaseConfig } from "../firebaseConfig";
 import { Store, OpnameSession } from '../types/data';
 
-let app: firebase.app.App;
 let db: firebase.firestore.Firestore | null = null;
 
-// Periksa apakah nilai konfigurasi adalah placeholder
-const isConfigValid = firebaseConfig.apiKey && firebaseConfig.apiKey !== "GANTI_DENGAN_API_KEY_ANDA";
+// Periksa apakah nilai konfigurasi adalah placeholder atau tidak diisi
+// Menggunakan `!!` untuk memastikan isConfigValid adalah boolean, memperbaiki error TS2322.
+const isConfigValid = !!(firebaseConfig.apiKey && firebaseConfig.projectId);
 
 if (isConfigValid) {
     try {
         if (!firebase.apps.length) {
-            app = firebase.initializeApp(firebaseConfig);
-        } else {
-            app = firebase.app();
+            firebase.initializeApp(firebaseConfig);
         }
         db = firebase.firestore();
         console.log("Firebase berhasil dikonfigurasi dan terhubung.");
