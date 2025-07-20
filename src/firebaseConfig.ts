@@ -1,7 +1,4 @@
-// Konfigurasi Firebase ini sekarang membaca dari Environment Variables.
-// Kunci rahasia Anda harus diatur di dasbor Vercel, bukan di sini.
-// File ini aman untuk di-commit ke GitHub.
-
+// firebaseConfig.ts
 export const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
