@@ -1,5 +1,4 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 3,
   "builds": [
     {
@@ -12,27 +11,8 @@
   ],
   "routes": [
     {
-      "src": "/assets/(.*)",
-      "headers": {
-        "Cache-Control": "public, max-age=31536000, immutable"
-      }
-    },
-    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "installCommand": "npm ci",
-  "buildCommand": "npm run build",
-  "images": {
-    "sizes": [256, 384, 640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    "domains": [
-      "*.firebaseapp.com",
-      "*.googleusercontent.com"
-    ],
-    "minimumCacheTTL": 86400
-  }
+  ]
 }
