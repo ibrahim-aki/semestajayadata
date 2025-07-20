@@ -1,26 +1,37 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "build": {
-    "env": {
-      "NODE_ENV": "production"
+  "version": 3,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/assets/(.*)",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
     },
-    "clean": true
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
   },
-  "buildCommand": "npm run build",
   "installCommand": "npm ci",
+  "buildCommand": "npm run build",
   "images": {
     "sizes": [256, 384, 640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    "remotePatterns": [
-      {
-        "protocol": "https",
-        "hostname": "**.firebaseapp.com",
-        "pathname": "/**"
-      },
-      {
-        "protocol": "https",
-        "hostname": "**.googleusercontent.com",
-        "pathname": "/**"
-      }
+    "domains": [
+      "*.firebaseapp.com",
+      "*.googleusercontent.com"
     ],
     "minimumCacheTTL": 86400
   }
