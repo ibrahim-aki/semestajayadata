@@ -10,3 +10,10 @@
   },
   "include": ["vite.config.ts"]
 }
+{
+  "compilerOptions": {
+    "types": ["vite/client", "node"],
+    "skipLibCheck": true,
+    "noImplicitAny": false
+  }
+}
