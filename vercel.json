@@ -1,18 +1,27 @@
 {
-  "version": 3,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "build": {
+    "env": {
+      "NODE_ENV": "production"
+    },
+    "clean": true
+  },
+  "buildCommand": "npm run build",
+  "installCommand": "npm ci",
+  "images": {
+    "sizes": [256, 384, 640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    "remotePatterns": [
+      {
+        "protocol": "https",
+        "hostname": "**.firebaseapp.com",
+        "pathname": "/**"
+      },
+      {
+        "protocol": "https",
+        "hostname": "**.googleusercontent.com",
+        "pathname": "/**"
       }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
-  ]
+    ],
+    "minimumCacheTTL": 86400
+  }
 }
