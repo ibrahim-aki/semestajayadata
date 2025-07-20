@@ -14,34 +14,42 @@ import {
   getDoc,
   Firestore
 } from 'firebase/firestore';
-import { firebaseConfig } from "../firebaseConfig";
+
 import { Store, OpnameSession } from '../types/data';
 
-let app: fbapp.FirebaseApp | null = null;
 let db: Firestore | null = null;
+let isInitialized = false;
 
-// ✅ Logging config agar bisa dilihat di browser console (bukan hanya dev)
-console.log("🔥 Firebase Config:", firebaseConfig);
+export const initFirebase = () => {
+  if (isInitialized) return;
+  
+  const config = {
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID
+  };
 
-// ✅ Validasi semua key config tidak kosong (null, undefined, "")
-const isConfigValid = Object.values(firebaseConfig).every(
-  (val) => typeof val === "string" && val.trim() !== ""
-);
+  const isConfigValid = Object.values(config).every(Boolean);
 
-if (isConfigValid) {
-  try {
-    app = fbapp.initializeApp(firebaseConfig);
-    db = getFirestore(app);
-    console.log("✅ Firebase berhasil dikonfigurasi & terhubung.");
-  } catch (error) {
-    console.error("❌ Gagal inisialisasi Firebase:", error);
-    db = null;
+  if (!isConfigValid) {
+    console.warn("⚠️ Firebase config invalid. App will run in offline mode.");
+    return;
   }
-} else {
-  console.warn("⚠️ Konfigurasi Firebase tidak valid. App akan berjalan dalam mode offline.");
-}
 
-export const isFirebaseConfigured = isConfigValid && db !== null;
+  try {
+    const app = fbapp.initializeApp(config);
+    db = getFirestore(app);
+    isInitialized = true;
+    console.log("✅ Firebase initialized and connected.");
+  } catch (error) {
+    console.error("❌ Firebase init failed:", error);
+  }
+};
+
+export const isFirebaseConfigured = () => isInitialized && db !== null;
 
 const STORES_COLLECTION = 'stores';
 const HISTORY_COLLECTION = 'opnameHistory';
@@ -52,8 +60,6 @@ export const onStoresSnapshot = (callback: (stores: Store[]) => void): (() => vo
   return onSnapshot(q, (snapshot) => {
     const stores = snapshot.docs.map(doc => doc.data() as Store);
     callback(stores);
-  }, (error) => {
-    console.error("❌ Gagal mendapatkan data toko:", error);
   });
 };
 
@@ -63,8 +69,6 @@ export const onHistorySnapshot = (callback: (history: OpnameSession[]) => void):
   return onSnapshot(q, (snapshot) => {
     const history = snapshot.docs.map(doc => doc.data() as OpnameSession);
     callback(history);
-  }, (error) => {
-    console.error("❌ Gagal mendapatkan riwayat opname:", error);
   });
 };
 
@@ -103,7 +107,7 @@ export const addOpnameSession = async (session: OpnameSession): Promise<void> =>
   const storeDoc = await getDoc(storeDocRef);
 
   if (!storeDoc.exists()) {
-    console.error("❌ Store tidak ditemukan untuk update opname.");
+    console.error("Store not found for opname update.");
     return;
   }
 

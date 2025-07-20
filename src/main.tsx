@@ -3,8 +3,14 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import './styles.css';
 
-// This is the main entry point for the application.
+import { initFirebase } from './services/firebase'; // ✅ Import initFirebase
+
+// ✅ Inisialisasi Firebase sebelum render
+initFirebase();
+
+// Titik masuk utama aplikasi
 const rootElement = document.getElementById('root');
+
 if (rootElement) {
     const root = createRoot(rootElement);
     root.render(
