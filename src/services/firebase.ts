@@ -20,7 +20,7 @@ import { Store, OpnameSession } from '../types/data';
 let app: fbapp.FirebaseApp | null = null;
 let db: Firestore | null = null;
 
-// ✅ Validasi konfigurasi ENV agar tidak null/undefined
+// ✅ Validasi semua key firebaseConfig harus tidak kosong/null
 const isConfigValid = Object.values(firebaseConfig).every(Boolean);
 
 if (isConfigValid) {
