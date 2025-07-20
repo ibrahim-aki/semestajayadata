@@ -24,7 +24,9 @@ let db: Firestore | null = null;
 console.log("🔥 Firebase Config:", firebaseConfig);
 
 // ✅ Validasi semua key config tidak kosong (null, undefined, "")
-const isConfigValid = Object.values(firebaseConfig).every((val) => typeof val === "string" && val.trim() !== "");
+const isConfigValid = Object.values(firebaseConfig).every(
+  (val) => typeof val === "string" && val.trim() !== ""
+);
 
 if (isConfigValid) {
   try {
@@ -113,4 +115,11 @@ export const addOpnameSession = async (session: OpnameSession): Promise<void> =>
 
   const updatedAssets = currentStoreData.assets.map(asset => {
     const change = session.assetChanges.find(c => c.assetId === asset.id);
-    return change ? { ...asset, condition: change.newCondit
+    return change ? { ...asset, condition: change.newCondition } : asset;
+  });
+
+  await updateDoc(storeDocRef, {
+    inventory: newInventory,
+    assets: updatedAssets
+  });
+};
