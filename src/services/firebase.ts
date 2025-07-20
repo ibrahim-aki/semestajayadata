@@ -1,120 +1,120 @@
-import firebase from 'firebase/compat/app';
-import 'firebase/compat/firestore';
+import { initializeApp } from 'firebase/app';
+import { 
+  getFirestore,
+  collection,
+  doc,
+  onSnapshot,
+  setDoc,
+  deleteDoc,
+  query,
+  orderBy,
+  where,
+  writeBatch,
+  getDocs,
+  runTransaction
+} from 'firebase/firestore';
 import { firebaseConfig } from "../firebaseConfig";
 import { Store, OpnameSession } from '../types/data';
 
-let db: firebase.firestore.Firestore | null = null;
-
-// Periksa apakah nilai konfigurasi adalah placeholder atau tidak diisi
-const isConfigValid = !!(firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.projectId !== 'nama-proyek-anda');
-
-if (isConfigValid) {
-    try {
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        db = firebase.firestore();
-        console.log("Firebase berhasil dikonfigurasi dan terhubung.");
-    } catch (error) {
-        console.error("Gagal menginisialisasi Firebase. Periksa Environment Variables di Vercel dan redeploy.", error);
-        alert(`Koneksi ke database gagal. Pastikan Environment Variables di Vercel sudah benar dan Anda telah melakukan 'Redeploy'.\n\nError: ${(error as Error).message}`);
-        db = null;
-    }
-} else {
-    console.warn("Konfigurasi Firebase belum diatur. Silakan atur Environment Variables di Vercel. Aplikasi akan berjalan dalam mode offline.");
-}
-
-export const isFirebaseConfigured = isConfigValid && db !== null;
+// Inisialisasi Firebase
+const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app);
+console.log("Firebase berhasil diinisialisasi");
 
 const STORES_COLLECTION = 'stores';
 const HISTORY_COLLECTION = 'opnameHistory';
 
 // Fungsi untuk mendapatkan data toko secara real-time
-export const onStoresSnapshot = (callback: (stores: Store[]) => void): (() => void) => {
-    if (!db) return () => {};
-    const q: firebase.firestore.Query = db.collection(STORES_COLLECTION).orderBy("name");
-    return q.onSnapshot((snapshot) => {
-        const stores = snapshot.docs.map(doc => doc.data() as Store);
-        callback(stores);
-    }, (error) => {
-        console.error("Gagal mendapatkan data toko: ", error);
-        alert(`Gagal mengambil data dari database. Error: ${error.message}`);
-    });
+export const onStoresSnapshot = (callback: (stores: Store[]) => {
+  const q = query(collection(db, STORES_COLLECTION), orderBy("name"));
+  return onSnapshot(q, (snapshot) => {
+    const stores = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }) as Store);
+    callback(stores);
+  }, (error) => {
+    console.error("Gagal mendapatkan data toko:", error);
+  });
 };
 
 // Fungsi untuk mendapatkan riwayat opname secara real-time
-export const onHistorySnapshot = (callback: (history: OpnameSession[]) => void): (() => void) => {
-    if (!db) return () => {};
-    const q: firebase.firestore.Query = db.collection(HISTORY_COLLECTION).orderBy("date", "desc");
-    return q.onSnapshot((snapshot) => {
-        const history = snapshot.docs.map(doc => doc.data() as OpnameSession);
-        callback(history);
-    }, (error) => {
-        console.error("Gagal mendapatkan riwayat opname: ", error);
-    });
+export const onHistorySnapshot = (callback: (history: OpnameSession[]) => {
+  const q = query(collection(db, HISTORY_COLLECTION), orderBy("date", "desc"));
+  return onSnapshot(q, (snapshot) => {
+    const history = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }) as OpnameSession);
+    callback(history);
+  }, (error) => {
+    console.error("Gagal mendapatkan riwayat opname:", error);
+  });
 };
 
-// Fungsi untuk memperbarui seluruh dokumen toko
+// Fungsi untuk memperbarui toko
 export const updateStore = async (store: Store): Promise<void> => {
-    if (!db) return;
-    await db.collection(STORES_COLLECTION).doc(store.id).set(store);
+  await setDoc(doc(db, STORES_COLLECTION, store.id), store, { merge: true });
 };
 
 // Fungsi untuk menambah toko baru
 export const addStore = async (store: Store): Promise<void> => {
-    if (!db) return;
-    await db.collection(STORES_COLLECTION).doc(store.id).set(store);
+  await setDoc(doc(db, STORES_COLLECTION, store.id), store);
 };
 
-// Fungsi untuk menghapus toko dan semua riwayat opname terkait
+// Fungsi untuk menghapus toko dan semua riwayat terkait
 export const deleteStore = async (storeId: string): Promise<void> => {
-    if (!db) return;
-    const batch = db.batch();
-
-    const storeDocRef = db.collection(STORES_COLLECTION).doc(storeId);
-    batch.delete(storeDocRef);
-
-    const historyQuery = db.collection(HISTORY_COLLECTION).where("storeId", "==", storeId);
-    const historySnapshot = await historyQuery.get();
-    historySnapshot.forEach(doc => {
-        batch.delete(doc.ref);
-    });
-
-    await batch.commit();
+  const batch = writeBatch(db);
+  
+  // Hapus toko
+  batch.delete(doc(db, STORES_COLLECTION, storeId));
+  
+  // Hapus riwayat opname terkait
+  const historyQuery = query(
+    collection(db, HISTORY_COLLECTION), 
+    where("storeId", "==", storeId)
+  );
+  
+  const historySnapshot = await getDocs(historyQuery);
+  historySnapshot.forEach(docSnapshot => {
+    batch.delete(docSnapshot.ref);
+  });
+  
+  await batch.commit();
 };
 
 // Fungsi untuk menambah sesi opname baru
 export const addOpnameSession = async (session: OpnameSession): Promise<void> => {
-    if (!db) return;
-    
-    // Simpan sesi opname
-    await db.collection(HISTORY_COLLECTION).doc(session.id).set(session);
-
-    // Ambil data toko saat ini untuk pembaruan yang aman
-    const storeDocRef = db.collection(STORES_COLLECTION).doc(session.storeId);
-    const storeDoc = await storeDocRef.get();
-    if (!storeDoc.exists) {
-        console.error("Store not found for opname update.");
-        return;
+  // Simpan sesi opname
+  await setDoc(doc(db, HISTORY_COLLECTION, session.id), session);
+  
+  // Update data toko menggunakan transaction
+  const storeRef = doc(db, STORES_COLLECTION, session.storeId);
+  
+  await runTransaction(db, async (transaction) => {
+    const storeDoc = await transaction.get(storeRef);
+    if (!storeDoc.exists()) {
+      throw new Error(`Store dengan ID ${session.storeId} tidak ditemukan`);
     }
-
-    const currentStoreData = storeDoc.data() as Store;
-
-    // Perbarui inventaris berdasarkan opname
-    const newInventory = currentStoreData.inventory.map(inv => {
-        const opnameItem = session.items.find(i => i.itemId === inv.itemId);
-        return opnameItem ? { ...inv, recordedStock: opnameItem.physicalCount } : inv;
+    
+    const currentStore = storeDoc.data() as Store;
+    
+    // Perbarui inventaris
+    const newInventory = currentStore.inventory.map(item => {
+      const opnameItem = session.items.find(i => i.itemId === item.itemId);
+      return opnameItem ? { ...item, recordedStock: opnameItem.physicalCount } : item;
     });
-
-    // Perbarui kondisi aset berdasarkan opname
-    const updatedAssets = currentStoreData.assets.map(asset => {
-        const change = session.assetChanges.find(c => c.assetId === asset.id);
-        return change ? { ...asset, condition: change.newCondition } : asset;
+    
+    // Perbarui kondisi aset
+    const updatedAssets = currentStore.assets.map(asset => {
+      const change = session.assetChanges.find(c => c.assetId === asset.id);
+      return change ? { ...asset, condition: change.newCondition } : asset;
     });
-
-    // Lakukan pembaruan pada dokumen toko
-    await storeDocRef.update({
-        inventory: newInventory,
-        assets: updatedAssets
+    
+    // Commit perubahan
+    transaction.update(storeRef, {
+      inventory: newInventory,
+      assets: updatedAssets
     });
+  });
 };
