@@ -15,114 +15,112 @@ import {
   Firestore
 } from 'firebase/firestore';
 
+import { firebaseConfig } from '../firebaseConfig';
 import { Store, OpnameSession } from '../types/data';
 
+let app: fbapp.FirebaseApp | null = null;
 let db: Firestore | null = null;
 
-export const initFirebase = () => {
-  if (db) return db; // Sudah diinisialisasi
+// ✅ Cek apakah seluruh variabel konfigurasi Firebase sudah tersedia
+const isFirebaseEnvValid = Object.values(firebaseConfig).every(value =>
+  typeof value === 'string' && value.trim() !== ''
+);
 
-  const config = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID
-  };
-
-  const isValid = Object.values(config).every(v => typeof v === 'string' && v.trim() !== '');
-  if (!isValid) {
-    console.warn('[Firebase] Environment Variables belum lengkap. Mode offline.');
-    return null;
+if (isFirebaseEnvValid) {
+  try {
+    app = fbapp.initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    console.log('[Firebase] Firebase berhasil dikonfigurasi & tersambung.');
+  } catch (error) {
+    console.error('[Firebase] Gagal inisialisasi:', error);
+    db = null;
   }
+} else {
+  console.warn('[Firebase] Environment Variables belum lengkap. Mode offline.');
+}
 
-  const app = fbapp.initializeApp(config);
-  db = getFirestore(app);
-  console.log('[Firebase] Firestore berhasil dikonfigurasi.');
-  return db;
-};
+export const isFirebaseConfigured = isFirebaseEnvValid && db !== null;
 
-export const getDb = () => db;
-
-export const isFirebaseConfigured = () => db !== null;
-
-// 🔽 Semua fungsi menggunakan getDb()
 const STORES_COLLECTION = 'stores';
 const HISTORY_COLLECTION = 'opnameHistory';
 
+// Realtime listener data toko
 export const onStoresSnapshot = (callback: (stores: Store[]) => void): (() => void) => {
-  const db = getDb();
   if (!db) return () => {};
-  const q = query(collection(db, STORES_COLLECTION), orderBy("name"));
-  return onSnapshot(q, (snap) => {
-    const stores = snap.docs.map(doc => doc.data() as Store);
+  const q = query(collection(db, STORES_COLLECTION), orderBy('name'));
+  return onSnapshot(q, (snapshot) => {
+    const stores = snapshot.docs.map(doc => doc.data() as Store);
     callback(stores);
+  }, (error) => {
+    console.error('[Firebase] Gagal mendapatkan data toko:', error);
   });
 };
 
+// Realtime listener data riwayat
 export const onHistorySnapshot = (callback: (history: OpnameSession[]) => void): (() => void) => {
-  const db = getDb();
   if (!db) return () => {};
-  const q = query(collection(db, HISTORY_COLLECTION), orderBy("date", "desc"));
-  return onSnapshot(q, (snap) => {
-    const history = snap.docs.map(doc => doc.data() as OpnameSession);
+  const q = query(collection(db, HISTORY_COLLECTION), orderBy('date', 'desc'));
+  return onSnapshot(q, (snapshot) => {
+    const history = snapshot.docs.map(doc => doc.data() as OpnameSession);
     callback(history);
+  }, (error) => {
+    console.error('[Firebase] Gagal mendapatkan data riwayat:', error);
   });
 };
 
 export const addStore = async (store: Store) => {
-  const db = getDb();
   if (!db) return;
   const ref = doc(db, STORES_COLLECTION, store.id);
   await setDoc(ref, store);
 };
 
 export const updateStore = async (store: Store) => {
-  const db = getDb();
   if (!db) return;
   const ref = doc(db, STORES_COLLECTION, store.id);
   await setDoc(ref, store, { merge: true });
 };
 
 export const deleteStore = async (storeId: string) => {
-  const db = getDb();
   if (!db) return;
   const batch = writeBatch(db);
-  const ref = doc(db, STORES_COLLECTION, storeId);
-  batch.delete(ref);
+  const storeRef = doc(db, STORES_COLLECTION, storeId);
+  batch.delete(storeRef);
 
-  const q = query(collection(db, HISTORY_COLLECTION), where("storeId", "==", storeId));
-  const snapshot = await getDocs(q);
-  snapshot.forEach(doc => batch.delete(doc.ref));
+  const historyQuery = query(collection(db, HISTORY_COLLECTION), where('storeId', '==', storeId));
+  const historySnapshot = await getDocs(historyQuery);
+  historySnapshot.forEach(doc => batch.delete(doc.ref));
+
   await batch.commit();
 };
 
 export const addOpnameSession = async (session: OpnameSession) => {
-  const db = getDb();
   if (!db) return;
 
-  const ref = doc(db, HISTORY_COLLECTION, session.id);
-  await setDoc(ref, session);
+  const sessionRef = doc(db, HISTORY_COLLECTION, session.id);
+  await setDoc(sessionRef, session);
 
   const storeRef = doc(db, STORES_COLLECTION, session.storeId);
   const storeSnap = await getDoc(storeRef);
-  if (!storeSnap.exists()) return;
+
+  if (!storeSnap.exists()) {
+    console.warn('[Firebase] Store tidak ditemukan saat update opname.');
+    return;
+  }
 
   const storeData = storeSnap.data() as Store;
 
-  const newInventory = storeData.inventory.map(i => {
-    const match = session.items.find(s => s.itemId === i.itemId);
-    return match ? { ...i, recordedStock: match.physicalCount } : i;
+  const updatedInventory = storeData.inventory.map(inv => {
+    const opnameItem = session.items.find(i => i.itemId === inv.itemId);
+    return opnameItem ? { ...inv, recordedStock: opnameItem.physicalCount } : inv;
   });
 
-  const newAssets = storeData.assets.map(a => {
-    const change = session.assetChanges.find(c => c.assetId === a.id);
-    return change ? { ...a, condition: change.newCondition } : a;
+  const updatedAssets = storeData.assets.map(asset => {
+    const change = session.assetChanges.find(c => c.assetId === asset.id);
+    return change ? { ...asset, condition: change.newCondition } : asset;
   });
 
   await updateDoc(storeRef, {
-    inventory: newInventory,
-    assets: newAssets
+    inventory: updatedInventory,
+    assets: updatedAssets
   });
 };
