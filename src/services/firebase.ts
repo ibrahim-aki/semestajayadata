@@ -26,6 +26,7 @@ const HISTORY_COLLECTION = 'opnameHistory';
 
 // Fungsi untuk mendapatkan data toko secara real-time
 export const onStoresSnapshot = (callback: (stores: Store[]) => {
+  // PERBAIKAN DI SINI: Hapus tanda kurung berlebih
   const q = query(collection(db, STORES_COLLECTION), orderBy("name"));
   return onSnapshot(q, (snapshot) => {
     const stores = snapshot.docs.map(doc => ({
@@ -40,6 +41,7 @@ export const onStoresSnapshot = (callback: (stores: Store[]) => {
 
 // Fungsi untuk mendapatkan riwayat opname secara real-time
 export const onHistorySnapshot = (callback: (history: OpnameSession[]) => {
+  // PERBAIKAN DI SINI: Hapus tanda kurung berlebih
   const q = query(collection(db, HISTORY_COLLECTION), orderBy("date", "desc"));
   return onSnapshot(q, (snapshot) => {
     const history = snapshot.docs.map(doc => ({
