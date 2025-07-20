@@ -1,4 +1,4 @@
-import { initializeApp } from "firebase/app";
+import * as fbapp from 'firebase/app';
 import { 
     getFirestore, 
     collection, 
@@ -11,11 +11,14 @@ import {
     where, 
     getDocs,
     updateDoc,
-    getDoc
-} from "firebase/firestore";
+    getDoc,
+    Firestore
+} from 'firebase/firestore';
 import { Store, OpnameSession } from '../types/data';
 
-// Konfigurasi Firebase langsung di file ini
+/// <reference types="vite/client" />
+
+// KONFIGURASI LANGSUNG DI SINI - TANPA IMPOR DARI FILE LAIN
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
     authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -25,28 +28,44 @@ const firebaseConfig = {
     appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+let app: fbapp.FirebaseApp | null = null;
+let db: Firestore | null = null;
 
-export const isFirebaseConfigured = !!firebaseConfig.apiKey;
+const isConfigValid = !!(firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.projectId !== 'nama-proyek-anda');
+
+if (isConfigValid) {
+    try {
+        app = fbapp.initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        console.log("Firebase berhasil dikonfigurasi dan terhubung.");
+    } catch (error) {
+        console.error("Gagal menginisialisasi Firebase. Periksa Environment Variables di Vercel dan redeploy.", error);
+        alert(`Koneksi ke database gagal. Pastikan Environment Variables di Vercel sudah benar dan Anda telah melakukan 'Redeploy'.\n\nError: ${(error as Error).message}`);
+        db = null;
+    }
+} else {
+    console.warn("Konfigurasi Firebase belum diatur. Silakan atur Environment Variables di Vercel. Aplikasi akan berjalan dalam mode offline.");
+}
+
+export const isFirebaseConfigured = isConfigValid && db !== null;
 
 const STORES_COLLECTION = 'stores';
 const HISTORY_COLLECTION = 'opnameHistory';
 
 export const onStoresSnapshot = (callback: (stores: Store[]) => void): (() => void) => {
-    if (!isFirebaseConfigured) return () => {};
+    if (!db) return () => {};
     const q = query(collection(db, STORES_COLLECTION), orderBy("name"));
     return onSnapshot(q, (snapshot) => {
         const stores = snapshot.docs.map(doc => doc.data() as Store);
         callback(stores);
     }, (error) => {
         console.error("Gagal mendapatkan data toko: ", error);
+        alert(`Gagal mengambil data dari database. Error: ${error.message}`);
     });
 };
 
 export const onHistorySnapshot = (callback: (history: OpnameSession[]) => void): (() => void) => {
-    if (!isFirebaseConfigured) return () => {};
+    if (!db) return () => {};
     const q = query(collection(db, HISTORY_COLLECTION), orderBy("date", "desc"));
     return onSnapshot(q, (snapshot) => {
         const history = snapshot.docs.map(doc => doc.data() as OpnameSession);
@@ -57,19 +76,19 @@ export const onHistorySnapshot = (callback: (history: OpnameSession[]) => void):
 };
 
 export const updateStore = async (store: Store): Promise<void> => {
-    if (!isFirebaseConfigured) return;
+    if (!db) return;
     const storeRef = doc(db, STORES_COLLECTION, store.id);
     await setDoc(storeRef, store, { merge: true });
 };
 
 export const addStore = async (store: Store): Promise<void> => {
-    if (!isFirebaseConfigured) return;
+    if (!db) return;
     const storeRef = doc(db, STORES_COLLECTION, store.id);
     await setDoc(storeRef, store);
 };
 
 export const deleteStore = async (storeId: string): Promise<void> => {
-    if (!isFirebaseConfigured) return;
+    if (!db) return;
     const batch = writeBatch(db);
     const storeDocRef = doc(db, STORES_COLLECTION, storeId);
     batch.delete(storeDocRef);
@@ -82,7 +101,7 @@ export const deleteStore = async (storeId: string): Promise<void> => {
 };
 
 export const addOpnameSession = async (session: OpnameSession): Promise<void> => {
-    if (!isFirebaseConfigured) return;
+    if (!db) return;
     
     const sessionRef = doc(db, HISTORY_COLLECTION, session.id);
     await setDoc(sessionRef, session);

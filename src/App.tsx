@@ -15,7 +15,7 @@ import {
     updateStore,
     deleteStore,
     addOpnameSession,
-} from './lib/firebase'; // PERBAIKAN PATH DI SINI
+} from './services/firebase';
 
 const APP_STORAGE_KEY_THEME = 'manajemen-toko-app-theme';
 
@@ -48,8 +48,8 @@ export const App = () => {
         });
 
         return () => {
-            if (unsubscribeStores) unsubscribeStores();
-            if (unsubscribeHistory) unsubscribeHistory();
+            unsubscribeStores();
+            unsubscribeHistory();
         };
     }, []);
 
@@ -71,6 +71,7 @@ export const App = () => {
     const handleOpnameComplete = async (report: OpnameSession) => {
         setIsSaving(true);
         await addOpnameSession(report);
+        // The onSnapshot listener will update the state, but we can set the active report immediately
         setActiveReport(report);
         setView('report');
         setIsSaving(false);
@@ -117,6 +118,7 @@ export const App = () => {
             }
         } catch (error) {
             console.error("Error loading sample data:", error);
+            alert("Gagal memuat data contoh.");
         } finally {
             setLoading(false);
         }
@@ -124,95 +126,35 @@ export const App = () => {
 
     const renderContent = () => {
         if (loading) {
-            return <div style={{textAlign: 'center', paddingTop: '50px'}}>
-                <div className="spinner" style={{width: 40, height: 40}}></div>
-                <p style={{marginTop: '16px', color: 'var(--text-secondary)'}}>Memuat data...</p>
-            </div>;
+            return <div style={{textAlign: 'center', paddingTop: '50px'}}><div className="spinner" style={{width: 40, height: 40}}></div><p style={{marginTop: '16px', color: 'var(--text-secondary)'}}>Memuat data...</p></div>;
         }
         switch (view) {
-            case 'store-detail': 
-                return selectedStore ? 
-                    <StoreDetailView 
-                        store={selectedStore} 
-                        onStoreUpdate={handleStoreUpdate} 
-                        onBack={handleBackToHome} 
-                        onStartOpname={handleStartOpname} 
-                        opnameHistory={opnameHistory} 
-                        onViewReport={handleViewReport} 
-                    /> : 
-                    <p>Toko tidak ditemukan.</p>;
-            case 'opname': 
-                return selectedStore ? 
-                    <StockOpnameView 
-                        store={selectedStore} 
-                        onStoreUpdate={handleStoreUpdate} 
-                        onComplete={handleOpnameComplete} 
-                        onCancel={handleOpnameCancel} 
-                    /> : 
-                    <p>Toko tidak ditemukan.</p>;
-            case 'report': 
-                return activeReport ? 
-                    <OpnameReportView 
-                        report={activeReport} 
-                        stores={stores} 
-                        onClose={handleCloseReport} 
-                    /> : 
-                    <p>Laporan tidak ditemukan.</p>;
-            default: 
-                return <HomePage 
-                    stores={stores} 
-                    onAddStore={handleAddStore} 
-                    onUpdateStore={handleUpdateStoreInfo} 
-                    onSelectStore={handleSelectStore} 
-                    onDeleteStore={handleDeleteStore} 
-                    isFirebaseConfigured={isFirebaseConfigured} 
-                    onLoadSampleData={handleLoadSampleData} 
-                />;
+            case 'store-detail': return selectedStore ? <StoreDetailView store={selectedStore} onStoreUpdate={handleStoreUpdate} onBack={handleBackToHome} onStartOpname={handleStartOpname} opnameHistory={opnameHistory} onViewReport={handleViewReport} /> : <p>Toko tidak ditemukan.</p>;
+            case 'opname': return selectedStore ? <StockOpnameView store={selectedStore} onStoreUpdate={handleStoreUpdate} onComplete={handleOpnameComplete} onCancel={handleOpnameCancel} /> : <p>Toko tidak ditemukan.</p>;
+            case 'report': return activeReport ? <OpnameReportView report={activeReport} stores={stores} onClose={handleCloseReport} /> : <p>Laporan tidak ditemukan.</p>;
+            default: return <HomePage stores={stores} onAddStore={handleAddStore} onUpdateStore={handleUpdateStoreInfo} onSelectStore={handleSelectStore} onDeleteStore={handleDeleteStore} isFirebaseConfigured={isFirebaseConfigured} onLoadSampleData={handleLoadSampleData} />;
         }
     };
 
     return (
         <div style={styles.app}>
             {!isFirebaseConfigured && (
-                 <div style={{
-                     padding: '12px', 
-                     backgroundColor: 'var(--warning-bg)', 
-                     color: 'var(--warning-text-body)', 
-                     textAlign: 'center', 
-                     borderBottom: '1px solid var(--warning-border)', 
-                     fontWeight: 500
-                 }}>
-                     <strong>Peringatan:</strong> Aplikasi berjalan dalam mode offline. 
-                     Untuk mengaktifkan sinkronisasi data online, mohon konfigurasi Environment Variables.
+                 <div style={{padding: '12px', backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text-body)', textAlign: 'center', borderBottom: '1px solid var(--warning-border)', fontWeight: 500}}>
+                     <strong>Peringatan:</strong> Aplikasi berjalan dalam mode offline. Untuk mengaktifkan sinkronisasi data online, mohon&nbsp;
+                     <a href="#" onClick={(e) => { e.preventDefault(); alert('Untuk mengaktifkan penyimpanan online, Anda harus mengatur Environment Variables (VITE_FIREBASE_API_KEY, dll) di dasbor Vercel Anda, lalu lakukan Redeploy.'); }} style={{color: 'var(--warning-text-header)', textDecoration: 'underline'}}>
+                         konfigurasi Environment Variables
+                     </a>.
                  </div>
             )}
             {isSaving && (
-                 <div style={{
-                     position: 'fixed', 
-                     top: '10px', 
-                     left: '50%', 
-                     transform: 'translateX(-50%)', 
-                     backgroundColor: 'var(--bg-content)', 
-                     color: 'var(--text-primary)', 
-                     padding: '8px 16px', 
-                     borderRadius: 'var(--radius-md)', 
-                     boxShadow: 'var(--shadow-lg)', 
-                     zIndex: 9999, 
-                     display: 'flex', 
-                     alignItems: 'center', 
-                     gap: '10px'
-                 }}>
+                 <div style={{position: 'fixed', top: '10px', left: '50%', transform: 'translateX(-50%)', backgroundColor: 'var(--bg-content)', color: 'var(--text-primary)', padding: '8px 16px', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-lg)', zIndex: 9999, display: 'flex', alignItems: 'center', gap: '10px'}}>
                     <div className="spinner" style={{width: '16px', height: '16px'}}></div>
                     Menyimpan...
                 </div>
             )}
             <header style={{...styles.appHeader}} className="responsive-header no-print">
                 <h1 style={styles.appTitle} className="app-title-style">Aplikasi Manajemen Toko</h1>
-                <button 
-                    onClick={toggleTheme} 
-                    style={{...styles.button, ...styles.buttonOutline, ...styles.buttonIcon}} 
-                    title={`Ganti ke tema ${theme === 'light' ? 'gelap' : 'terang'}`}
-                >
+                <button onClick={toggleTheme} style={{...styles.button, ...styles.buttonOutline, ...styles.buttonIcon}} title={`Ganti ke tema ${theme === 'light' ? 'gelap' : 'terang'}`}>
                     {theme === 'light' ? <MoonIcon size={20}/> : <SunIcon size={20}/>}
                 </button>
             </header>
