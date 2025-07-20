@@ -1,4 +1,6 @@
-# Logs
+# -----------------------------
+# 🔧 Logs
+# -----------------------------
 logs
 *.log
 npm-debug.log*
@@ -7,16 +9,22 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Dependencies
+# -----------------------------
+# 📦 Dependencies
+# -----------------------------
 node_modules/
 
-# Build output
+# -----------------------------
+# 🏗️ Build Output
+# -----------------------------
 dist/
 dist-ssr/
 build/
 out/
 
-# Environment variables
+# -----------------------------
+# 🔒 Environment Variables
+# -----------------------------
 .env
 .env.local
 .env.*.local
@@ -24,7 +32,9 @@ out/
 .env.production
 .env.test
 
-# Editor and IDE
+# -----------------------------
+# 🛠️ Editor & IDE
+# -----------------------------
 .vscode/
 .idea/
 *.suo
@@ -34,43 +44,58 @@ out/
 *.sw?
 .DS_Store
 
-# System files
+# -----------------------------
+# 💽 System Files
+# -----------------------------
 Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# Vite cache
+# -----------------------------
+# ⚡ Vite Cache
+# -----------------------------
 .cache/
 
-# TypeScript cache
+# -----------------------------
+# 🧠 TypeScript Cache
+# -----------------------------
 *.tsbuildinfo
 
-# Debug files
-*.log
-*.pid
-*.seed
-*.pid.lock
-debug.log
-
-# Coverage reports
+# -----------------------------
+# 🧪 Testing
+# -----------------------------
+__snapshots__/
+__tests__/__mocks__/
 coverage/
 .nyc_output/
 
-# Package manager files
+# -----------------------------
+# 📁 Package Lock Files
+# -----------------------------
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
-# Testing artifacts
-__snapshots__/
-__tests__/__mocks__/
+# -----------------------------
+# 🔍 Debug & Temp Files
+# -----------------------------
+*.pid
+*.pid.lock
+*.seed
+debug.log
 
-# Vercel
-.vercel
-
-# Optional ESLint/Prettier cache
+# -----------------------------
+# 🧼 Lint/Formatter Cache
+# -----------------------------
 .eslintcache
 .prettiercache
 
-# Optional local development files
+# -----------------------------
+# 🚀 Deployment (Vercel)
+# -----------------------------
+.vercel
+
+# -----------------------------
+# 💻 Local Dev/Custom
+# -----------------------------
 *.local
