@@ -1,98 +1,114 @@
-import * as fbapp from 'firebase/app';
+import { initializeApp } from 'firebase/app';
 import { 
-    getFirestore, 
-    collection, 
-    onSnapshot, 
-    doc, 
-    setDoc, 
-    deleteDoc, 
-    writeBatch, 
-    query, 
-    orderBy, 
-    where, 
-    getDocs,
-    updateDoc,
-    getDoc,
-    Firestore
+  getFirestore, 
+  collection, 
+  onSnapshot, 
+  doc, 
+  setDoc, 
+  deleteDoc, 
+  writeBatch, 
+  query, 
+  orderBy, 
+  where, 
+  getDocs,
+  updateDoc,
+  getDoc
 } from 'firebase/firestore';
 import { firebaseConfig } from "../firebaseConfig";
 import { Store, OpnameSession } from '../types/data';
 
-let app: fbapp.FirebaseApp | null = null;
-let db: Firestore | null = null;
+// Inisialisasi Firebase langsung
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+console.log("Firebase initialized with manual config");
 
-const isConfigValid = !!(firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.projectId !== 'nama-proyek-anda');
+// Test koneksi Firebase
+const testConnection = async () => {
+  try {
+    const testRef = doc(collection(db, 'testConnection'));
+    await setDoc(testRef, { 
+      timestamp: new Date(),
+      message: "Firebase test successful" 
+    });
+    console.log("Firebase test: Write successful");
+  } catch (error) {
+    console.error("Firebase test failed:", error);
+  }
+};
 
-if (isConfigValid) {
-    try {
-        app = fbapp.initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        console.log("Firebase berhasil dikonfigurasi dan terhubung.");
-    } catch (error) {
-        console.error("Gagal menginisialisasi Firebase. Periksa Environment Variables di Vercel dan redeploy.", error);
-        alert(`Koneksi ke database gagal. Pastikan Environment Variables di Vercel sudah benar dan Anda telah melakukan 'Redeploy'.\n\nError: ${(error as Error).message}`);
-        db = null;
-    }
-} else {
-    console.warn("Konfigurasi Firebase belum diatur. Silakan atur Environment Variables di Vercel. Aplikasi akan berjalan dalam mode offline.");
-}
-
-export const isFirebaseConfigured = isConfigValid && db !== null;
+testConnection();
 
 const STORES_COLLECTION = 'stores';
 const HISTORY_COLLECTION = 'opnameHistory';
 
-export const onStoresSnapshot = (callback: (stores: Store[]) => void): (() => void) => {
-    if (!db) return () => {};
-    const q = query(collection(db, STORES_COLLECTION), orderBy("name"));
-    return onSnapshot(q, (snapshot) => {
-        const stores = snapshot.docs.map(doc => doc.data() as Store);
-        callback(stores);
-    }, (error) => {
-        console.error("Gagal mendapatkan data toko: ", error);
-        alert(`Gagal mengambil data dari database. Error: ${error.message}`);
-    });
+export const onStoresSnapshot = (callback: (stores: Store[]) => {
+  const q = query(collection(db, STORES_COLLECTION), orderBy("name"));
+  return onSnapshot(q, (snapshot) => {
+    const stores = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }) as Store);
+    callback(stores);
+  }, (error) => {
+    console.error("Gagal mendapatkan data toko:", error);
+  });
 };
 
-export const onHistorySnapshot = (callback: (history: OpnameSession[]) => void): (() => void) => {
-    if (!db) return () => {};
-    const q = query(collection(db, HISTORY_COLLECTION), orderBy("date", "desc"));
-    return onSnapshot(q, (snapshot) => {
-        const history = snapshot.docs.map(doc => doc.data() as OpnameSession);
-        callback(history);
-    }, (error) => {
-        console.error("Gagal mendapatkan riwayat opname: ", error);
-    });
+export const onHistorySnapshot = (callback: (history: OpnameSession[]) => {
+  const q = query(collection(db, HISTORY_COLLECTION), orderBy("date", "desc"));
+  return onSnapshot(q, (snapshot) => {
+    const history = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }) as OpnameSession);
+    callback(history);
+  }, (error) => {
+    console.error("Gagal mendapatkan riwayat opname:", error);
+  });
 };
 
 export const updateStore = async (store: Store): Promise<void> => {
-    if (!db) return;
+  try {
     const storeRef = doc(db, STORES_COLLECTION, store.id);
     await setDoc(storeRef, store, { merge: true });
+  } catch (error) {
+    console.error("Gagal memperbarui toko:", error);
+  }
 };
 
 export const addStore = async (store: Store): Promise<void> => {
-    if (!db) return;
+  try {
     const storeRef = doc(db, STORES_COLLECTION, store.id);
     await setDoc(storeRef, store);
+  } catch (error) {
+    console.error("Gagal menambah toko:", error);
+  }
 };
 
 export const deleteStore = async (storeId: string): Promise<void> => {
-    if (!db) return;
+  try {
     const batch = writeBatch(db);
     const storeDocRef = doc(db, STORES_COLLECTION, storeId);
     batch.delete(storeDocRef);
-    const historyQuery = query(collection(db, HISTORY_COLLECTION), where("storeId", "==", storeId));
+    
+    const historyQuery = query(
+      collection(db, HISTORY_COLLECTION), 
+      where("storeId", "==", storeId)
+    );
+    
     const historySnapshot = await getDocs(historyQuery);
     historySnapshot.forEach(doc => {
-        batch.delete(doc.ref);
+      batch.delete(doc.ref);
     });
+    
     await batch.commit();
+  } catch (error) {
+    console.error("Gagal menghapus toko:", error);
+  }
 };
 
 export const addOpnameSession = async (session: OpnameSession): Promise<void> => {
-    if (!db) return;
-    
+  try {
     const sessionRef = doc(db, HISTORY_COLLECTION, session.id);
     await setDoc(sessionRef, session);
 
@@ -100,23 +116,28 @@ export const addOpnameSession = async (session: OpnameSession): Promise<void> =>
     const storeDoc = await getDoc(storeDocRef);
 
     if (!storeDoc.exists()) {
-        console.error("Store not found for opname update.");
-        return;
+      console.error("Toko tidak ditemukan untuk update opname");
+      return;
     }
 
     const currentStoreData = storeDoc.data() as Store;
+    
     const newInventory = currentStoreData.inventory.map(inv => {
-        const opnameItem = session.items.find(i => i.itemId === inv.itemId);
-        return opnameItem ? { ...inv, recordedStock: opnameItem.physicalCount } : inv;
+      const opnameItem = session.items.find(i => i.itemId === inv.itemId);
+      return opnameItem ? { ...inv, recordedStock: opnameItem.physicalCount } : inv;
     });
 
     const updatedAssets = currentStoreData.assets.map(asset => {
-        const change = session.assetChanges.find(c => c.assetId === asset.id);
-        return change ? { ...asset, condition: change.newCondition } : asset;
+      const change = session.assetChanges.find(c => c.assetId === asset.id);
+      return change ? { ...asset, condition: change.newCondition } : asset;
     });
 
     await updateDoc(storeDocRef, {
-        inventory: newInventory,
-        assets: updatedAssets
+      inventory: newInventory,
+      assets: updatedAssets
     });
+    
+  } catch (error) {
+    console.error("Gagal menambah sesi opname:", error);
+  }
 };
