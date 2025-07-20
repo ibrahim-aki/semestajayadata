@@ -14,42 +14,33 @@ import {
   getDoc,
   Firestore
 } from 'firebase/firestore';
-
+import { firebaseConfig } from "../firebaseConfig";
 import { Store, OpnameSession } from '../types/data';
 
+let app: fbapp.FirebaseApp | null = null;
 let db: Firestore | null = null;
-let isInitialized = false;
 
-export const initFirebase = () => {
-  if (isInitialized) return;
-  
-  const config = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FIREBASE_APP_ID
-  };
+function isFirebaseConfigValid(config: typeof firebaseConfig): boolean {
+  return Object.values(config).every(Boolean);
+}
 
-  const isConfigValid = Object.values(config).every(Boolean);
-
-  if (!isConfigValid) {
-    console.warn("⚠️ Firebase config invalid. App will run in offline mode.");
-    return;
-  }
-
-  try {
-    const app = fbapp.initializeApp(config);
-    db = getFirestore(app);
-    isInitialized = true;
-    console.log("✅ Firebase initialized and connected.");
-  } catch (error) {
-    console.error("❌ Firebase init failed:", error);
-  }
+export const isFirebaseConfigured = (): boolean => {
+  return isFirebaseConfigValid(firebaseConfig) && db !== null;
 };
 
-export const isFirebaseConfigured = () => isInitialized && db !== null;
+if (isFirebaseConfigValid(firebaseConfig)) {
+  try {
+    app = fbapp.initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    console.log("✅ Firebase terhubung.");
+  } catch (error) {
+    console.error("❌ Gagal menginisialisasi Firebase:", error);
+    db = null;
+  }
+} else {
+  console.warn("⚠️ Firebase Config kosong. Jalan di mode offline.");
+  db = null;
+}
 
 const STORES_COLLECTION = 'stores';
 const HISTORY_COLLECTION = 'opnameHistory';
@@ -60,6 +51,9 @@ export const onStoresSnapshot = (callback: (stores: Store[]) => void): (() => vo
   return onSnapshot(q, (snapshot) => {
     const stores = snapshot.docs.map(doc => doc.data() as Store);
     callback(stores);
+  }, (error) => {
+    console.error("Gagal ambil data toko: ", error);
+    alert(`Gagal ambil data. Error: ${error.message}`);
   });
 };
 
@@ -69,6 +63,8 @@ export const onHistorySnapshot = (callback: (history: OpnameSession[]) => void):
   return onSnapshot(q, (snapshot) => {
     const history = snapshot.docs.map(doc => doc.data() as OpnameSession);
     callback(history);
+  }, (error) => {
+    console.error("Gagal mendapatkan riwayat opname: ", error);
   });
 };
 
@@ -99,7 +95,6 @@ export const deleteStore = async (storeId: string): Promise<void> => {
 
 export const addOpnameSession = async (session: OpnameSession): Promise<void> => {
   if (!db) return;
-
   const sessionRef = doc(db, HISTORY_COLLECTION, session.id);
   await setDoc(sessionRef, session);
 
