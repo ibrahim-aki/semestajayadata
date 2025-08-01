@@ -1,4 +1,4 @@
-import { Timestamp } from &#39;firebase/firestore&#39;;
+import { Timestamp } from 'firebase/firestore';
 
 export interface ItemCategory { id: string; name: string; prefix: string; }
 export interface Unit { id: string; name: string; }
@@ -94,9 +94,9 @@ export interface OpnameSession {
 
 // Tipe baru untuk data profil pengguna yang disimpan di Firestore
 export interface UserProfile {
-uid: string;
-email: string | null;
-role: 'admin' | 'demo';
-createdAt: Timestamp;
-trialEndsAt?: Timestamp; // Hanya ada untuk pengguna dengan peran 'demo'
+  uid: string;
+  email: string | null;
+  role: 'admin' | 'demo';
+  createdAt: Timestamp;
+  trialEndsAt?: Timestamp; // Hanya ada untuk pengguna dengan peran 'demo'
 }
