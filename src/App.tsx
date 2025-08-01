@@ -6,42 +6,32 @@ import { StoreDetailView } from './components/views/StoreDetailView';
 import { StockOpnameView } from './components/views/StockOpnameView';
 import { OpnameReportView } from './components/views/OpnameReportView';
 import { LoginView } from './components/views/LoginView';
-import { defaultStores } from './data/defaultData';
+// Hapus defaultStores karena data sekarang datang dari Firestore
+// import { defaultStores } from './data/defaultData';
 import { SunIcon, MoonIcon, LogOutIcon, ClockIcon } from './components/common/Icons';
 import { auth, db } from './services/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+// --- TAMBAHKAN IMPORT BARU ---
+import { onUserDataSnapshot, saveUserData } from './services/storeService';
 
 const APP_STORAGE_KEY_THEME = 'manajemen-toko-app-theme';
 
-// FIX: Komponen ini diubah untuk memperbaiki error tipe data TypeScript.
-// Fungsionalitasnya tetap sama.
 const DemoExpirationBanner = ({ expirationTimestamp }: { expirationTimestamp: number }) => {
-    // Fungsi ini sekarang dibungkus dengan useCallback dan DIJAMIN selalu mengembalikan string.
     const calculateTimeLeft = useCallback(() => {
         const now = Date.now();
         const difference = expirationTimestamp - now;
-
-        if (difference <= 0) {
-            return 'Sesi demo telah berakhir.';
-        }
-        
+        if (difference <= 0) return 'Sesi demo telah berakhir.';
         const days = Math.floor(difference / (1000 * 60 * 60 * 24));
         const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-
         return `${days} hari, ${hours} jam, ${minutes} menit`;
     }, [expirationTimestamp]);
 
-    // State diinisialisasi langsung dengan hasil fungsi.
     const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
 
     useEffect(() => {
-        // useEffect sekarang hanya bertugas untuk menjalankan interval.
-        const interval = setInterval(() => {
-            setTimeLeft(calculateTimeLeft());
-        }, 60000); // Update setiap 1 menit.
-        
+        const interval = setInterval(() => setTimeLeft(calculateTimeLeft()), 60000);
         return () => clearInterval(interval);
     }, [calculateTimeLeft]);
 
@@ -52,7 +42,6 @@ const DemoExpirationBanner = ({ expirationTimestamp }: { expirationTimestamp: nu
         </div>
     );
 };
-
 
 export const App = () => {
     const [user, setUser] = useState<UserProfile | null>(null);
@@ -65,6 +54,9 @@ export const App = () => {
     const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
     const [activeReport, setActiveReport] = useState<OpnameSession | null>(null);
     const [theme, setTheme] = useState(() => localStorage.getItem(APP_STORAGE_KEY_THEME) || 'light');
+    
+    // State untuk mencegah penulisan data saat pertama kali dimuat
+    const [isInitialDataLoaded, setIsInitialDataLoaded] = useState(false);
 
     const handleLogout = useCallback(() => {
         signOut(auth).catch(error => console.error("Logout error", error));
@@ -74,6 +66,7 @@ export const App = () => {
         setActiveReport(null);
         setStores([]);
         setOpnameHistory([]);
+        setIsInitialDataLoaded(false); // Reset status data
     }, []);
 
     useEffect(() => {
@@ -81,10 +74,8 @@ export const App = () => {
             if (firebaseUser) {
                 const userDocRef = doc(db, 'users', firebaseUser.uid);
                 const userDoc = await getDoc(userDocRef);
-
                 if (userDoc.exists()) {
                     const userData = userDoc.data() as UserProfile;
-                    
                     if (userData.role === 'demo' && userData.trialEndsAt) {
                         const expirationMillis = userData.trialEndsAt.toMillis();
                         if (Date.now() > expirationMillis) {
@@ -93,9 +84,7 @@ export const App = () => {
                             return;
                         }
                     }
-                    
                     setUser(userData);
-
                 } else {
                     console.error("Dokumen pengguna tidak ditemukan untuk UID:", firebaseUser.uid);
                     handleLogout();
@@ -108,47 +97,40 @@ export const App = () => {
         return () => unsubscribe();
     }, [handleLogout]);
 
+    // --- GANTI LOGIKA localStorage DENGAN FIRESTORE ---
+
+    // EFEK BARU: Membaca data dari Firestore secara real-time
     useEffect(() => {
         if (user) {
             setIsLoadingData(true);
-            const storesKey = `manajemen-toko-app-stores-${user.uid}`;
-            const historyKey = `manajemen-toko-app-history-${user.uid}`;
-            
-            try {
-                const savedStores = localStorage.getItem(storesKey);
-                const parsedStores = savedStores ? JSON.parse(savedStores) : defaultStores;
-                setStores(parsedStores.map((store: any) => ({
-                    ...{ investors: [], cashFlow: [], capitalRecouped: 0, netProfit: 0 },
-                    ...store,
-                })));
-
-                const savedHistory = localStorage.getItem(historyKey);
-                setOpnameHistory(savedHistory ? JSON.parse(savedHistory) : []);
-            } catch (e) {
-                console.error("Gagal memuat data, kembali ke default.", e);
-                setStores(defaultStores);
-                setOpnameHistory([]);
-            } finally {
+            setIsInitialDataLoaded(false); // Set ulang saat user berganti
+            const unsubscribe = onUserDataSnapshot(user.uid, (data) => {
+                setStores(data.stores);
+                setOpnameHistory(data.opnameHistory);
                 setIsLoadingData(false);
-            }
+                setIsInitialDataLoaded(true); // Tandai bahwa data awal sudah dimuat
+            });
+            // Hentikan listener saat komponen unmount atau user berubah
+            return () => unsubscribe();
         } else {
+            // Jika tidak ada user, pastikan data kosong dan loading selesai
+            setStores([]);
+            setOpnameHistory([]);
             setIsLoadingData(false);
         }
     }, [user]);
 
+    // EFEK BARU: Menyimpan data ke Firestore setiap kali ada perubahan
     useEffect(() => {
-        if (user && !isLoadingData) {
-            try {
-                const storesKey = `manajemen-toko-app-stores-${user.uid}`;
-                const historyKey = `manajemen-toko-app-history-${user.uid}`;
-                localStorage.setItem(storesKey, JSON.stringify(stores));
-                localStorage.setItem(historyKey, JSON.stringify(opnameHistory));
-            } catch (e) {
-                console.error("Gagal menyimpan data ke localStorage", e);
-            }
+        // Hanya simpan jika user ada, dan data awal sudah selesai dimuat
+        // Ini untuk mencegah penulisan data kosong ke Firestore saat pertama kali render
+        if (user && isInitialDataLoaded) {
+            saveUserData(user.uid, stores, opnameHistory);
         }
-    }, [stores, opnameHistory, user, isLoadingData]);
+    }, [stores, opnameHistory, user, isInitialDataLoaded]);
     
+    // --- AKHIR DARI PERUBAHAN LOGIKA ---
+
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem(APP_STORAGE_KEY_THEME, theme);
