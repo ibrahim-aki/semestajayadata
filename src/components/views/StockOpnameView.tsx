@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -11,7 +12,12 @@ import { createAndDownloadExcel, SheetRequest } from '../../utils/exportUtils';
 
 const generateId = (prefix: string) => `${prefix}${Date.now()}${Math.random().toString(36).substring(2, 6)}`;
 
-interface StockOpnameViewProps { store: Store; onStoreUpdate: (store: Store) => void; onComplete: (session: OpnameSession) => void; onCancel: () => void; }
+interface StockOpnameViewProps { 
+    store: Store; 
+    onStoreUpdate: (store: Store) => void; 
+    onComplete: (session: OpnameSession) => void; 
+    onCancel: () => void;
+}
 
 export const StockOpnameView: React.FC<StockOpnameViewProps> = ({ store, onStoreUpdate, onComplete, onCancel }) => {
     const [opnameData, setOpnameData] = useState<{ [itemId: string]: number | '' }>({});
@@ -59,9 +65,11 @@ export const StockOpnameView: React.FC<StockOpnameViewProps> = ({ store, onStore
         };
         const newInventory = store.items.map(item => ({ itemId: item.id, recordedStock: Number(opnameData[item.id] ?? 0) }));
         const updatedAssets = store.assets.map(asset => ({ ...asset, condition: assetConditions[asset.id] || asset.condition }));
+        
         const updatedStore = { ...store, inventory: newInventory, assets: updatedAssets };
         onStoreUpdate(updatedStore);
         onComplete(newOpnameSession);
+
         setIsConfirmOpen(false);
     };
 

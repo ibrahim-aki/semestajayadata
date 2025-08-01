@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Store, Investor } from '../../types/data';
 import { styles } from '../../styles';
@@ -30,6 +32,7 @@ export const StoreInvestorsView: React.FC<StoreInvestorsViewProps> = ({ store, o
     
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
+        
         const shareNum = parseFloat(formData.sharePercentage);
         if (!formData.name || isNaN(shareNum) || shareNum <= 0 || shareNum > 100) {
             alert('Nama dan Persentase Saham (1-100) harus diisi dengan benar.');
@@ -82,10 +85,10 @@ export const StoreInvestorsView: React.FC<StoreInvestorsViewProps> = ({ store, o
                 <h3 style={{marginTop: 0, marginBottom: '20px', fontSize: '1.25rem'}}>{editingInvestor ? 'Edit Investor' : 'Tambah Investor Baru'}</h3>
                 <form onSubmit={handleSave}>
                     <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr auto auto', gap: '16px', alignItems: 'flex-end', marginBottom: '16px'}} className="responsive-form-grid">
-                        <div><label htmlFor="investor-name" style={styles.formLabel}>Nama Investor</label><input id="investor-name" ref={firstInputRef} style={styles.input} type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required/></div>
+                        <div><label htmlFor="investor-name" style={styles.formLabel}>Nama Investor</label><input id="investor-name" ref={firstInputRef} style={styles.input} type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required /></div>
                         <div>
                             <label htmlFor="investor-share" style={styles.formLabel}>Persentase Saham (%)</label>
-                            <input id="investor-share" style={styles.input} type="number" step="0.1" min="0.1" max="100" value={formData.sharePercentage} onChange={e => setFormData({ ...formData, sharePercentage: e.target.value })} placeholder="Contoh: 20" required/>
+                            <input id="investor-share" style={styles.input} type="number" step="0.1" min="0.1" max="100" value={formData.sharePercentage} onChange={e => setFormData({ ...formData, sharePercentage: e.target.value })} placeholder="Contoh: 20" required />
                         </div>
                         <div style={{alignSelf: 'flex-end'}}><button type="submit" style={{...styles.button, ...styles.buttonPrimary}}>{editingInvestor ? 'Simpan' : 'Tambah'}</button></div>
                         <div style={{alignSelf: 'flex-end'}}><button type="button" onClick={handleCancel} style={{ ...styles.button, ...styles.buttonOutline }}>Batal</button></div>

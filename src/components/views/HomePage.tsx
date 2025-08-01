@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Store } from '../../types/data';
 import { styles } from '../../styles';
@@ -12,12 +13,10 @@ interface HomePageProps {
     onAddStore: (store: Store) => void;
     onUpdateStore: (id: string, data: { name: string; address: string }) => void;
     onDeleteStore: (id: string) => void;
-    isFirebaseConfigured: boolean;
-    onLoadSampleData: () => void;
 }
 const generateId = (prefix: string) => `${prefix}${Date.now()}${Math.random().toString(36).substring(2, 6)}`;
 
-export const HomePage: React.FC<HomePageProps> = ({ stores, onSelectStore, onAddStore, onUpdateStore, onDeleteStore, isFirebaseConfigured, onLoadSampleData }) => {
+export const HomePage: React.FC<HomePageProps> = ({ stores, onSelectStore, onAddStore, onUpdateStore, onDeleteStore }) => {
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editingStore, setEditingStore] = useState<Store | null>(null);
     const [formData, setFormData] = useState({ name: '', address: '' });
@@ -32,17 +31,21 @@ export const HomePage: React.FC<HomePageProps> = ({ stores, onSelectStore, onAdd
     const handleOpenAddModal = () => { setEditingStore(null); setFormData({ name: '', address: '' }); setIsFormModalOpen(true); };
     const handleOpenEditModal = (store: Store) => { setEditingStore(store); setFormData({ name: store.name, address: store.address || '' }); setIsFormModalOpen(true); };
     const handleCloseModal = () => { if (isSaving) return; setIsFormModalOpen(false); setEditingStore(null); setFormData({ name: '', address: '' }); setError(''); };
-    const handleSaveStore = async () => {
+    
+    const handleSaveStore = () => {
         if (!formData.name.trim()) { setError('Nama toko tidak boleh kosong.'); return; }
         setIsSaving(true);
         try {
-            if (editingStore) { await onUpdateStore(editingStore.id, { name: formData.name.trim(), address: formData.address.trim() || '' }); } 
-            else { const newStore: Store = { id: generateId('TKO'), name: formData.name.trim(), address: formData.address.trim() || '', items: [], inventory: [], assets: [], costs: [], itemCategories: [], units: [], assetCategories: [], investors: [], cashFlow: [], capitalRecouped: 0, netProfit: 0 }; await onAddStore(newStore); }
+            if (editingStore) { onUpdateStore(editingStore.id, { name: formData.name.trim(), address: formData.address.trim() || '' }); } 
+            else { const newStore: Store = { id: generateId('TKO'), name: formData.name.trim(), address: formData.address.trim() || '', items: [], inventory: [], assets: [], costs: [], itemCategories: [], units: [], assetCategories: [], investors: [], cashFlow: [], capitalRecouped: 0, netProfit: 0 }; onAddStore(newStore); }
             handleCloseModal();
-        } catch (err) { console.error("Failed to save store:", err); setError("Gagal menyimpan toko."); } 
+        } catch (err) { console.error("Failed to save store:", err); setError("Gagal menyimpan toko. Operasi lokal seharusnya tidak gagal."); } 
         finally { setIsSaving(false); }
     };
-    const handleConfirmDelete = async () => { if(confirmDelete) { await onDeleteStore(confirmDelete.id); setConfirmDelete(null); } };
+    
+    const handleConfirmDelete = () => {
+        if(confirmDelete) { onDeleteStore(confirmDelete.id); setConfirmDelete(null); } 
+    };
 
     const filteredStores = useMemo(() => {
         if (!searchQuery) return stores;
@@ -81,7 +84,10 @@ export const HomePage: React.FC<HomePageProps> = ({ stores, onSelectStore, onAdd
             </div>
         </div>
         <div style={styles.storeGrid}>{filteredStores.length > 0 ? filteredStores.map(store => {
-            const menuItems = [ { label: 'Edit Toko', icon: <PencilIcon size={16} />, onClick: () => handleOpenEditModal(store) }, { label: 'Hapus Toko', icon: <TrashIcon size={16} />, onClick: () => setConfirmDelete(store) }, ];
+            const menuItems = [ 
+                { label: 'Edit Toko', icon: <PencilIcon size={16} />, onClick: () => handleOpenEditModal(store) }, 
+                { label: 'Hapus Toko', icon: <TrashIcon size={16} />, onClick: () => setConfirmDelete(store) }, 
+            ];
             
             return (
                 <div key={store.id} className="store-card" onClick={(e) => {
@@ -103,18 +109,6 @@ export const HomePage: React.FC<HomePageProps> = ({ stores, onSelectStore, onAdd
                     </div>
                 </div>
             )
-        }) : (
-            <div style={{textAlign: 'center', padding: '40px', backgroundColor: 'var(--bg-content)', borderRadius: 'var(--radius-lg)', gridColumn: '1 / -1'}}>
-                <h3 style={{marginTop: 0, fontSize: '1.25rem'}}>Tidak Ada Toko</h3>
-                <p style={{color: 'var(--text-secondary)', maxWidth: '400px', margin: '0 auto 24px'}}>
-                    {isFirebaseConfigured ? 'Anda belum menambahkan toko. Klik "Muat Data Contoh" untuk memulai dengan beberapa data, atau tambah toko baru.' : 'Anda dapat menambahkan toko baru untuk memulai.'}
-                </p>
-                {isFirebaseConfigured && (
-                    <button onClick={onLoadSampleData} style={{...styles.button, ...styles.buttonPrimary}}>
-                        Muat Data Contoh
-                    </button>
-                )}
-            </div>
-        )}</div>
+        }) : <p>Toko tidak ditemukan atau belum ada toko yang ditambahkan.</p>}</div>
     </>;
 };

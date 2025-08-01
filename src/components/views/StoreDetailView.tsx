@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { Store, Asset, OpnameSession, Item } from '../../types/data';
 import { styles } from '../../styles';
@@ -93,8 +94,12 @@ export const StoreDetailView: React.FC<StoreDetailViewProps> = ({ store, onStore
             createAndDownloadExcel(sheetRequests, `${store.name}-Semua Data.xlsx`);
         } else if (activeTab !== 'summary') {
             const tabKey = activeTab as keyof typeof sheetDataMap;
-            sheetRequests.push({ sheetName: sheetDataMap[tabKey].name, data: sheetDataMap[tabKey].data });
-            createAndDownloadExcel(sheetRequests, `${store.name}-${sheetDataMap[tabKey].name}.xlsx`);
+            if (sheetDataMap[tabKey] && sheetDataMap[tabKey].data.length > 0) {
+                sheetRequests.push({ sheetName: sheetDataMap[tabKey].name, data: sheetDataMap[tabKey].data });
+                createAndDownloadExcel(sheetRequests, `${store.name}-${sheetDataMap[tabKey].name}.xlsx`);
+            } else {
+                alert(`Tidak ada data untuk diekspor di tab "${TABS[activeTab as keyof typeof TABS].label}".`);
+            }
         }
     }, [store, activeTab]);
 
@@ -209,7 +214,15 @@ export const StoreDetailView: React.FC<StoreDetailViewProps> = ({ store, onStore
     const triggerImport = (type: 'current' | 'all') => { if (importFileRef.current) { importFileRef.current.onchange = (e) => handleFileImport(e as unknown as React.ChangeEvent<HTMLInputElement>, type); importFileRef.current.click(); } };
     const importMenuItems = [ { label: 'Impor Tab Saat Ini', onClick: () => triggerImport('current') }, { label: 'Impor Semua Data', onClick: () => triggerImport('all') }, ];
     const exportMenuItems = [ { label: 'Ekspor Tab Saat Ini', onClick: () => handleExport('current') }, { label: 'Ekspor Semua Data', onClick: () => handleExport('all') }, ];
-    const mobileMenuItems = [ { label: 'Mulai Cek', icon: <PlayIcon />, onClick: onStartOpname }, { isSeparator: true }, { label: 'Impor Tab Saat Ini', icon: <ImportIcon />, onClick: () => triggerImport('current') }, { label: 'Ekspor Tab Saat Ini', icon: <ExportIcon />, onClick: () => handleExport('current') }, { isSeparator: true }, { label: 'Impor Semua Data', icon: <ImportIcon />, onClick: () => triggerImport('all') }, { label: 'Ekspor Semua Data', icon: <ExportIcon />, onClick: () => handleExport('all') }, ];
+    const mobileMenuItems = [ 
+        { label: 'Mulai Cek', icon: <PlayIcon />, onClick: onStartOpname }, 
+        { isSeparator: true }, 
+        { label: 'Impor Tab Saat Ini', icon: <ImportIcon />, onClick: () => triggerImport('current') }, 
+        { label: 'Ekspor Tab Saat Ini', icon: <ExportIcon />, onClick: () => handleExport('current') }, 
+        { isSeparator: true }, 
+        { label: 'Impor Semua Data', icon: <ImportIcon />, onClick: () => triggerImport('all') }, 
+        { label: 'Ekspor Semua Data', icon: <ExportIcon />, onClick: () => handleExport('all') }, 
+    ];
     
     const TABS: { [key: string]: { label: string; component: React.ReactNode } } = { 
         summary: { label: "Ringkasan", component: <StoreSummaryView store={store} latestOpname={latestOpname} onViewReport={onViewReport} /> },

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { styles } from '../../styles';
 import { ConfirmModal, InfoModal } from '../common/Modals';
@@ -29,13 +30,21 @@ export const MasterDataView: React.FC<MasterDataViewProps> = ({ title, data, col
     useEffect(() => { if (editingItem) { setFormData(editingItem); setIsAdding(false); } }, [editingItem]);
     useEffect(() => { if (showForm) { formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => firstInputRef.current?.focus(), 300); } }, [showForm]);
     const handleCancel = () => { setIsAdding(false); setEditingItem(null); setFormData(emptyForm); };
-    const handleSave = (e: React.FormEvent) => { e.preventDefault(); onSave(formData, editingItem); handleCancel(); };
+    const handleSave = (e: React.FormEvent) => { 
+        e.preventDefault(); 
+        onSave(formData, editingItem); 
+        handleCancel(); 
+    };
     const handleDeleteClick = (itemId: string) => {
         if (usageCheck && usageCheck(itemId)) { setInfoMessage(`Tidak bisa menghapus. ${itemType} ini sedang digunakan oleh data lain.`); return; }
         setDeletingId(itemId);
         setIsConfirmOpen(true);
     };
-    const handleConfirmDelete = () => { if(deletingId) onDelete(deletingId); setIsConfirmOpen(false); setDeletingId(null); };
+    const handleConfirmDelete = () => { 
+        if(deletingId) onDelete(deletingId); 
+        setIsConfirmOpen(false); 
+        setDeletingId(null); 
+    };
     return <>
         <InfoModal isOpen={!!infoMessage} onClose={() => setInfoMessage('')} title="Operasi Ditolak">{infoMessage}</InfoModal>
         <ConfirmModal isOpen={isConfirmOpen} onClose={() => setIsConfirmOpen(false)} onConfirm={handleConfirmDelete} title={`Hapus ${itemType}?`}><p>Apakah Anda yakin ingin menghapus {itemType} ini? Tindakan ini tidak dapat diurungkan.</p></ConfirmModal>

@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 export const styles: { [key: string]: React.CSSProperties } = {
@@ -40,4 +41,9 @@ export const styles: { [key: string]: React.CSSProperties } = {
     searchInputWrapper: { position: 'relative', width: '100%', maxWidth: '400px' },
     searchInput: { width: 'calc(100% - 48px)', padding: '10px 16px 10px 40px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', fontSize: '0.95rem' },
     searchInputIcon: { position: 'absolute', top: '50%', left: '12px', transform: 'translateY(-50%)', pointerEvents: 'none' },
+    loginContainer: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '20px' },
+    loginCard: { backgroundColor: 'var(--bg-content)', padding: '40px', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: '400px', textAlign: 'center' },
+    loginTitle: { margin: '16px 0 8px 0', fontSize: '1.75rem', fontWeight: 700 },
+    loginSubtitle: { margin: '0 0 32px 0', color: 'var(--text-secondary)' },
+    expirationBanner: { backgroundColor: 'var(--warning-bg)', color: 'var(--warning-text-body)', padding: '12px 16px', textAlign: 'center', borderRadius: 'var(--radius-md)', border: '1px solid var(--warning-border)', fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '24px' },
 };

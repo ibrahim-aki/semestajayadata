@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Store, Item } from '../../types/data';
 import { styles } from '../../styles';
@@ -80,6 +82,7 @@ export const StoreItemsView: React.FC<StoreItemsViewProps> = ({ store, onStoreUp
     
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
+        
         const { name, categoryId, sellingUnitId, purchaseUnitId, conversionRate, totalPurchasePrice, sellingPrice, description, stockPurchaseUnitQty, stockSellingUnitQty } = formData;
         
         const rate = parseFloat(conversionRate) || 1;
@@ -144,7 +147,11 @@ export const StoreItemsView: React.FC<StoreItemsViewProps> = ({ store, onStoreUp
     };
 
     const handleConfirmRestock = () => {
-        if (!restockingItem || !restockData.quantity) return;
+        if (!restockingItem || !restockData.quantity) {
+            setRestockingItem(null);
+            return;
+        }
+
         const quantityToAdd = parseInt(restockData.quantity, 10);
         if (isNaN(quantityToAdd) || quantityToAdd <= 0) {
             alert("Jumlah harus angka positif.");
@@ -258,7 +265,7 @@ export const StoreItemsView: React.FC<StoreItemsViewProps> = ({ store, onStoreUp
         </Modal>
 
         <Modal isOpen={isCategoryModalOpen} onClose={() => setIsCategoryModalOpen(false)} title="Kelola Kategori Barang"><MasterDataView title="" itemType="Kategori Barang" data={store.itemCategories} columns={[{ key: 'name', label: 'Nama Kategori' }, { key: 'prefix', label: 'Prefix SKU' }]} onSave={handleSaveCategory} onDelete={handleDeleteCategory} formInputs={[{ key: 'name', label: 'Nama Kategori' }, { key: 'prefix', label: 'Prefix SKU (3 Huruf)' }]} emptyForm={{ name: '', prefix: '' }} usageCheck={(id) => store.items.some(item => item.categoryId === id)} /></Modal>
-        <Modal isOpen={isUnitModalOpen} onClose={() => setIsUnitModalOpen(false)} title="Kelola Satuan Barang"><MasterDataView title="" itemType="Satuan" data={store.units} columns={[{ key: 'name', label: 'Nama Satuan' }]} onSave={handleSaveUnit} onDelete={handleDeleteUnit} formInputs={[{ key: 'name', label: 'Nama Satuan' }]} emptyForm={{ name: '' }} usageCheck={(id) => store.items.some(item => item.sellingUnitId === id || item.purchaseUnitId === id)}/></Modal>
+        <Modal isOpen={isUnitModalOpen} onClose={() => setIsUnitModalOpen(false)} title="Kelola Satuan Barang"><MasterDataView title="" itemType="Satuan" data={store.units} columns={[{ key: 'name', label: 'Nama Satuan' }]} onSave={handleSaveUnit} onDelete={handleDeleteUnit} formInputs={[{ key: 'name', label: 'Nama Satuan' }]} emptyForm={{ name: '' }} usageCheck={(id) => store.items.some(item => item.sellingUnitId === id || item.purchaseUnitId === id)} /></Modal>
         <div style={{...styles.headerActions, marginBottom: '16px'}} className="responsive-header-actions">
             <h3 style={{marginTop: 0, marginBottom: 0, fontSize: '1.25rem'}}>Daftar Barang</h3>
             <div style={{...styles.inlineFlex}}>

@@ -1,6 +1,4 @@
-# -----------------------------
-# 🔧 Logs
-# -----------------------------
+# Logs
 logs
 *.log
 npm-debug.log*
@@ -9,93 +7,18 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# -----------------------------
-# 📦 Dependencies
-# -----------------------------
-node_modules/
+node_modules
+dist
+dist-ssr
+*.local
 
-# -----------------------------
-# 🏗️ Build Output
-# -----------------------------
-dist/
-dist-ssr/
-build/
-out/
-
-# -----------------------------
-# 🔒 Environment Variables
-# -----------------------------
-.env
-.env.local
-.env.*.local
-.env.development
-.env.production
-.env.test
-
-# -----------------------------
-# 🛠️ Editor & IDE
-# -----------------------------
-.vscode/
-.idea/
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-.DS_Store
-
-# -----------------------------
-# 💽 System Files
-# -----------------------------
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-
-# -----------------------------
-# ⚡ Vite Cache
-# -----------------------------
-.cache/
-
-# -----------------------------
-# 🧠 TypeScript Cache
-# -----------------------------
-*.tsbuildinfo
-
-# -----------------------------
-# 🧪 Testing
-# -----------------------------
-__snapshots__/
-__tests__/__mocks__/
-coverage/
-.nyc_output/
-
-# -----------------------------
-# 📁 Package Lock Files
-# -----------------------------
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
-
-# -----------------------------
-# 🔍 Debug & Temp Files
-# -----------------------------
-*.pid
-*.pid.lock
-*.seed
-debug.log
-
-# -----------------------------
-# 🧼 Lint/Formatter Cache
-# -----------------------------
-.eslintcache
-.prettiercache
-
-# -----------------------------
-# 🚀 Deployment (Vercel)
-# -----------------------------
-.vercel
-
-# -----------------------------
-# 💻 Local Dev/Custom
-# -----------------------------
-*.local

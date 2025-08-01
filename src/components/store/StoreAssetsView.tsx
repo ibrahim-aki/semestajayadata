@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Store, Asset } from '../../types/data';
 import { styles } from '../../styles';
@@ -36,9 +38,10 @@ export const StoreAssetsView: React.FC<StoreAssetsViewProps> = ({ store, onStore
     useEffect(() => { if (editingAsset) { setFormData({ ...editingAsset, value: String(editingAsset.value), description: editingAsset.description || '', condition: editingAsset.condition || 'Normal' }); setIsAdding(false); } }, [editingAsset]);
     useEffect(() => { if (showForm) { formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => firstInputRef.current?.focus(), 300); } }, [showForm]);
     const handleCancel = () => { setIsAdding(false); setEditingAsset(null); setFormData(emptyForm); };
+    
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
-        const valueNum = parseFloat(parseNumberWithDots(formData.value));
+        const valueNum = parseFloat(parseNumberWithDots(String(formData.value)));
         if (!formData.name || !formData.purchaseDate || !formData.categoryId || isNaN(valueNum)) return alert('Semua field harus diisi dengan benar.');
         const assetData = { name: formData.name, purchaseDate: formData.purchaseDate, value: valueNum, categoryId: formData.categoryId, description: formData.description, condition: formData.condition };
         let updatedStore = { ...store };
@@ -47,13 +50,16 @@ export const StoreAssetsView: React.FC<StoreAssetsViewProps> = ({ store, onStore
         onStoreUpdate(updatedStore);
         handleCancel();
     };
+    
     const handleDeleteClick = (assetId: string) => { setDeletingId(assetId); setIsConfirmOpen(true); };
     const handleConfirmDelete = () => { if (!deletingId) return; onStoreUpdate({ ...store, assets: store.assets.filter(a => a.id !== deletingId) }); setIsConfirmOpen(false); setDeletingId(null); };
+    
     const handleSaveAssetCategory = (formData: any, editingItem: any) => {
         if (!formData.name || !formData.prefix) return alert('Nama dan Prefix harus diisi.');
         const updatedCategories = editingItem ? store.assetCategories.map(c => c.id === editingItem.id ? { ...c, ...formData } : c) : [...store.assetCategories, { ...formData, id: generateId('AC') }];
         onStoreUpdate({ ...store, assetCategories: updatedCategories });
     };
+
     const handleDeleteAssetCategory = (id: string) => { onStoreUpdate({ ...store, assetCategories: store.assetCategories.filter(c => c.id !== id) }); };
     
     const assetsWithDetails = useMemo(() => {

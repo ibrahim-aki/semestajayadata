@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { Store, CashFlowEntry } from '../../types/data';
 import { styles } from '../../styles';
@@ -90,6 +91,7 @@ export const CashFlowView: React.FC<CashFlowViewProps> = ({ store, onStoreUpdate
 
     const handleAddIncome = (e: React.FormEvent) => {
         e.preventDefault();
+        
         const amount = parseFloat(parseNumberWithDots(formData.amount));
         if (!formData.date || isNaN(amount) || amount <= 0) {
             alert("Tanggal dan Jumlah Pemasukan harus diisi dengan benar.");
@@ -178,8 +180,8 @@ export const CashFlowView: React.FC<CashFlowViewProps> = ({ store, onStoreUpdate
         <div style={{...styles.card, marginBottom: '24px'}}>
             <h3 style={{marginTop: 0, marginBottom: '20px', fontSize: '1.25rem'}}>Input Pemasukan Harian</h3>
             <form onSubmit={handleAddIncome} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr auto', gap: '16px', alignItems: 'flex-end'}} className="responsive-form-grid">
-                <div><label htmlFor="income-date" style={styles.formLabel}>Tanggal</label><input type="date" id="income-date" style={styles.input} value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} required/></div>
-                <div><label htmlFor="income-amount" style={styles.formLabel}>Jumlah (Rp)</label><input type="text" id="income-amount" style={styles.input} value={formatNumberWithDots(formData.amount)} onChange={e => setFormData({...formData, amount: e.target.value})} required/></div>
+                <div><label htmlFor="income-date" style={styles.formLabel}>Tanggal</label><input type="date" id="income-date" style={styles.input} value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} required /></div>
+                <div><label htmlFor="income-amount" style={styles.formLabel}>Jumlah (Rp)</label><input type="text" id="income-amount" style={styles.input} value={formatNumberWithDots(formData.amount)} onChange={e => setFormData({...formData, amount: e.target.value})} required /></div>
                 <div><label htmlFor="income-desc" style={styles.formLabel}>Keterangan</label><input type="text" id="income-desc" style={styles.input} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} /></div>
                 <div><button type="submit" style={{...styles.button, ...styles.buttonPrimary}}>Tambah</button></div>
             </form>

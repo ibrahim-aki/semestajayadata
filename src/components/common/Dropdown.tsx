@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useRef } from 'react';
 
 type MenuItem = {
@@ -55,7 +57,8 @@ export const Dropdown: React.FC<DropdownProps> = ({ trigger, menuItems, menuPosi
                               onClick={() => { if(item.onClick) item.onClick(); setIsOpen(false); }}
                               className="dropdown-item"
                               style={{ display: 'flex', alignItems: 'center', width: '100%', padding: '10px 16px', textAlign: 'left', background: 'transparent',
-                                border: 'none', cursor: 'pointer', fontSize: '0.95rem', color: 'var(--text-primary)', transition: 'background-color 0.2s' }}
+                                border: 'none', cursor: item.onClick ? 'pointer' : 'not-allowed', fontSize: '0.95rem', color: item.onClick ? 'var(--text-primary)' : 'var(--text-secondary)', transition: 'background-color 0.2s' }}
+                              disabled={!item.onClick}
                             >
                                 {item.icon && <span style={{ marginRight: '12px', display: 'flex', alignItems: 'center' }}>{item.icon}</span>}
                                 {item.label}

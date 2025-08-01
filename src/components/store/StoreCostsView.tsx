@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Store, OperationalCost } from '../../types/data';
 import { styles } from '../../styles';
@@ -34,6 +36,7 @@ export const StoreCostsView: React.FC<StoreCostsViewProps> = ({ store, onStoreUp
     useEffect(() => { if (editingCost) { setFormData({ name: editingCost.name, amount: String(editingCost.amount), frequency: editingCost.frequency, description: editingCost.description || '' }); setIsAdding(false); } }, [editingCost]);
     useEffect(() => { if (showForm) { formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); setTimeout(() => firstInputRef.current?.focus(), 300); } }, [showForm]);
     const handleCancel = () => { setIsAdding(false); setEditingCost(null); setFormData(emptyForm); };
+    
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
         const amountNum = parseFloat(parseNumberWithDots(formData.amount));
@@ -45,6 +48,7 @@ export const StoreCostsView: React.FC<StoreCostsViewProps> = ({ store, onStoreUp
         onStoreUpdate(updatedStore);
         handleCancel();
     };
+    
     const handleDeleteClick = (costId: string) => { setDeletingId(costId); setIsConfirmOpen(true); };
     const handleConfirmDelete = () => {
         if (!deletingId) return;
@@ -82,7 +86,7 @@ export const StoreCostsView: React.FC<StoreCostsViewProps> = ({ store, onStoreUp
                 <h3 style={{marginTop: 0, marginBottom: '20px', fontSize: '1.25rem'}}>{editingCost ? 'Edit Biaya' : 'Tambah Biaya Baru'}</h3>
                 <form onSubmit={handleSave}>
                     <div style={{display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '16px', alignItems: 'flex-end', marginBottom: '16px'}} className="responsive-form-grid">
-                        <div><label htmlFor="cost-name" style={styles.formLabel}>Biaya</label><input id="cost-name" ref={firstInputRef} style={styles.input} type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required/></div>
+                        <div><label htmlFor="cost-name" style={styles.formLabel}>Biaya</label><input id="cost-name" ref={firstInputRef} style={styles.input} type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required /></div>
                         <div>
                             <label htmlFor="cost-amount" style={styles.formLabel}>Jumlah (Rp)</label>
                             <input
