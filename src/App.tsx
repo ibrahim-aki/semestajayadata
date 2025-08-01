@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-// FIX 1: Impor tipe UserProfile yang sudah kita definisikan dengan benar
 import { Store, OpnameSession, UserProfile } from './types/data';
 import { styles } from './styles';
 import { HomePage } from './components/views/HomePage';
@@ -15,32 +14,36 @@ import { doc, getDoc } from 'firebase/firestore';
 
 const APP_STORAGE_KEY_THEME = 'manajemen-toko-app-theme';
 
-// Komponen banner ini sudah OK, tidak perlu diubah.
+// FIX: Komponen ini diubah untuk memperbaiki error tipe data TypeScript.
+// Fungsionalitasnya tetap sama.
 const DemoExpirationBanner = ({ expirationTimestamp }: { expirationTimestamp: number }) => {
-    const [timeLeft, setTimeLeft] = useState('');
+    // Fungsi ini sekarang dibungkus dengan useCallback dan DIJAMIN selalu mengembalikan string.
+    const calculateTimeLeft = useCallback(() => {
+        const now = Date.now();
+        const difference = expirationTimestamp - now;
+
+        if (difference <= 0) {
+            return 'Sesi demo telah berakhir.';
+        }
+        
+        const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+
+        return `${days} hari, ${hours} jam, ${minutes} menit`;
+    }, [expirationTimestamp]);
+
+    // State diinisialisasi langsung dengan hasil fungsi.
+    const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
 
     useEffect(() => {
-        const calculateTimeLeft = () => {
-            const now = Date.now();
-            const difference = expirationTimestamp - now;
-
-            if (difference <= 0) {
-                setTimeLeft('Sesi demo telah berakhir.');
-                return;
-            }
-            
-            const days = Math.floor(difference / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-
-            return `${days} hari, ${hours} jam, ${minutes} menit`;
-        };
+        // useEffect sekarang hanya bertugas untuk menjalankan interval.
+        const interval = setInterval(() => {
+            setTimeLeft(calculateTimeLeft());
+        }, 60000); // Update setiap 1 menit.
         
-        setTimeLeft(calculateTimeLeft());
-        const interval = setInterval(() => setTimeLeft(calculateTimeLeft()), 60000);
         return () => clearInterval(interval);
-
-    }, [expirationTimestamp]);
+    }, [calculateTimeLeft]);
 
     return (
         <div style={styles.expirationBanner}>
@@ -52,7 +55,6 @@ const DemoExpirationBanner = ({ expirationTimestamp }: { expirationTimestamp: nu
 
 
 export const App = () => {
-    // Gunakan tipe UserProfile yang benar
     const [user, setUser] = useState<UserProfile | null>(null);
     const [authChecked, setAuthChecked] = useState(false);
     const [stores, setStores] = useState<Store[]>([]);
@@ -66,7 +68,6 @@ export const App = () => {
 
     const handleLogout = useCallback(() => {
         signOut(auth).catch(error => console.error("Logout error", error));
-        // FIX 2: Reset semua state, termasuk user, saat logout untuk mencegah data lama muncul.
         setUser(null);
         setView('home');
         setSelectedStoreId(null);
@@ -82,21 +83,17 @@ export const App = () => {
                 const userDoc = await getDoc(userDocRef);
 
                 if (userDoc.exists()) {
-                    // FIX 3: Ambil data dan langsung gunakan tipe UserProfile
                     const userData = userDoc.data() as UserProfile;
                     
-                    // Cek jika akun demo sudah kedaluwarsa
                     if (userData.role === 'demo' && userData.trialEndsAt) {
-                        // Firestore Timestamp perlu diubah ke milidetik
                         const expirationMillis = userData.trialEndsAt.toMillis();
                         if (Date.now() > expirationMillis) {
                             alert('Sesi demo Anda telah berakhir.');
                             handleLogout();
-                            return; // Hentikan proses lebih lanjut
+                            return;
                         }
                     }
                     
-                    // Jika semua valid, set state user
                     setUser(userData);
 
                 } else {
@@ -104,7 +101,6 @@ export const App = () => {
                     handleLogout();
                 }
             } else {
-                // Pengguna logout, pastikan state user null
                 setUser(null);
             }
             setAuthChecked(true);
@@ -112,7 +108,6 @@ export const App = () => {
         return () => unsubscribe();
     }, [handleLogout]);
 
-    // Logika untuk memuat dan menyimpan data dari localStorage sudah OK, tidak perlu diubah.
     useEffect(() => {
         if (user) {
             setIsLoadingData(true);
@@ -159,7 +154,6 @@ export const App = () => {
         localStorage.setItem(APP_STORAGE_KEY_THEME, theme);
     }, [theme]);
 
-    // Sisa dari komponen tidak perlu diubah, karena sudah bergantung pada state `user` yang sekarang sudah benar.
     const toggleTheme = () => setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
     const selectedStore = useMemo(() => stores.find(s => s.id === selectedStoreId), [stores, selectedStoreId]);
 
@@ -219,7 +213,6 @@ export const App = () => {
                 </div>
             </header>
             <main style={styles.mainContent} className="responsive-padding">
-                {/* FIX 4: Logika render banner sekarang akan bekerja dengan benar */}
                 {user.role === 'demo' && user.trialEndsAt && <DemoExpirationBanner expirationTimestamp={user.trialEndsAt.toMillis()} />}
                 {renderContent()}
             </main>
