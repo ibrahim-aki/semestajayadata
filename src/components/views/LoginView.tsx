@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { styles } from '../../styles';
 import { LockIcon } from '../common/Icons';
-// Impor fungsi baru dari auth.ts
 import { signInAndGetUserProfile } from '../../services/auth';
 
 export const LoginView: React.FC = () => {
@@ -24,19 +23,15 @@ export const LoginView: React.FC = () => {
         setIsLoading(true);
         setError('');
         try {
-            // Panggil fungsi login yang baru
-            const { user, userProfile } = await signInAndGetUserProfile(email, password);
+            // FIX: Hanya ambil 'userProfile', karena 'user' tidak digunakan.
+            const { userProfile } = await signInAndGetUserProfile(email, password);
             
-            // Jika berhasil, onAuthStateChanged di App.tsx akan menangani navigasi.
-            // Anda juga bisa menyimpan userProfile ke global state (seperti Context atau Redux) di sini.
             console.log(`Login berhasil sebagai: ${userProfile.role}`);
 
         } catch (err: any) {
-            // Tangani error custom dari fungsi auth kita (kedaluwarsa, profil tidak ada)
             if (err.message.includes('kedaluwarsa') || err.message.includes('ditemukan')) {
                 setError(err.message);
             } else {
-                // Tangani error standar dari Firebase Auth
                 const errorCode = err.code;
                 if (errorCode === 'auth/invalid-credential' || errorCode === 'auth/user-not-found' || errorCode === 'auth/wrong-password') {
                     setError('Email atau password salah.');
@@ -46,7 +41,6 @@ export const LoginView: React.FC = () => {
                 }
             }
         } finally {
-            // Pastikan loading berhenti apa pun hasilnya
             setIsLoading(false);
         }
     };
