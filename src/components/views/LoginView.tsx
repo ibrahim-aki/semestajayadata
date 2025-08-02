@@ -65,7 +65,7 @@ export const LoginView: React.FC = () => {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 disabled={isLoading}
-                                placeholder="contoh: admin@app.com"
+                                placeholder="contoh: warungku@gmail.com"
                             />
                         </div>
                         <div style={{ ...styles.formGroup, textAlign: 'left' }}>
