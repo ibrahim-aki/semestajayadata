@@ -184,7 +184,7 @@ export const App = () => {
     return (
         <div style={styles.app}>
             <header style={{...styles.appHeader}} className="responsive-header no-print">
-                <h1 style={styles.appTitle} className="app-title-style">Aplikasi Manajemen Toko</h1>
+                <h1 style={styles.appTitle} className="app-title-style">Aplikasi Warung Madura</h1>
                 <div style={styles.inlineFlex}>
                     <button onClick={toggleTheme} style={{...styles.button, ...styles.buttonOutline, ...styles.buttonIcon}} title={`Ganti ke tema ${theme === 'light' ? 'gelap' : 'terang'}`}>
                         {theme === 'light' ? <MoonIcon size={20}/> : <SunIcon size={20}/>}
