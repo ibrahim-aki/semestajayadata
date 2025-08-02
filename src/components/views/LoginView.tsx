@@ -52,7 +52,7 @@ export const LoginView: React.FC = () => {
                     <div style={{ color: 'var(--primary-color)' }}>
                         <LockIcon size={32} />
                     </div>
-                    <h1 style={styles.loginTitle}>Login</h1>
+                    <h1 style={styles.loginTitle}>Warung Madura</h1>
                     <p style={styles.loginSubtitle}>Selamat datang! Silakan masuk.</p>
                     <form onSubmit={handleSubmit}>
                         <div style={{ ...styles.formGroup, textAlign: 'left' }}>
